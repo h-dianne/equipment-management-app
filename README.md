@@ -267,8 +267,14 @@ React Query が提供する`isLoading`、`isError`、`isSuccess`などの状態�
 
 ```bash
 # 依存パッケージのインストール
-yarn install
+npm install
 
-# 開発サーバーの起動
-yarn dev
+# 開発サーバーの起動（フロントエンドのみ）
+npm run dev
+
+# モックAPIサーバーの起動（別ターミナルで実行）
+npm run api
+
+# 開発サーバーとモックAPIサーバーを同時に起動
+npm run dev:all
 ```
