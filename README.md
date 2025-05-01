@@ -7,6 +7,22 @@ API 通信、データキャッシュ管理、バリデーション、状態管�
 
 また、実際の開発現場に必要な「型安全性」や「エラーハンドリング」などのベストプラクティスを身につけることも目的としています。
 
+## 開発環境の準備
+
+```bash
+# 依存パッケージのインストール
+npm install
+
+# 開発サーバーの起動（フロントエンドのみ）
+npm run dev
+
+# モックAPIサーバーの起動（別ターミナルで実行）
+npm run api
+
+# 開発サーバーとモックAPIサーバーを同時に起動
+npm run dev:all
+```
+
 ---
 
 ## Task 1. Web API の適切な呼び出しと実装方法の習得
@@ -263,18 +279,199 @@ const EquipmentList = () => {
 
 React Query が提供する`isLoading`、`isError`、`isSuccess`などの状態フラグを使用して、データの状態に応じた UI の表示を制御しています。また、`refetch`関数を使用して、ユーザーが明示的にデータを再取得できるボタンを追加しています。
 
-## 開発環境の準備
+---
 
-```bash
-# 依存パッケージのインストール
-npm install
+## Task 2. フォームの制御と入力検証の実装方法の習得
 
-# 開発サーバーの起動（フロントエンドのみ）
-npm run dev
+このプロジェクトでは、以下のライブラリを使用してフォーム制御と入力検証を実装しました：
 
-# モックAPIサーバーの起動（別ターミナルで実行）
-npm run api
+- [**react-hook-form**](https://react-hook-form.com/): パフォーマンスと使いやすさを重視したフォーム状態管理ライブラリ
+- [**zod**](https://zod.dev/?id=introduction): スキーマベースの入力検証ライブラリ
+- [**@hookform/resolvers/zod**](https://github.com/react-hook-form/resolvers#zod): react-hook-form と zod を接続するリゾルバー
 
-# 開発サーバーとモックAPIサーバーを同時に起動
-npm run dev:all
+以下は、各検証項目ごとの実装内容です。
+
+### 1. フォーム制御と状態管理
+
+#### useForm フックによるフォーム状態管理
+
+```typescript
+// src/components/EquipmentForm.tsx から抜粋
+const {
+  register,
+  handleSubmit,
+  reset,
+  formState: { errors }
+} = useForm<EquipmentFormData>({
+  resolver: zodResolver(equipmentFormSchema),
+  mode: "onBlur",
+  defaultValues: {
+    status: "利用可能",
+    quantity: 1,
+    purchaseDate: new Date().toISOString().split("T")[0]
+  }
+});
 ```
+
+react-hook-form の `useForm` フックを使用してフォームの状態を管理しています。このフックはフォームの入力値、エラー状態、送信処理などを扱います。
+
+#### フォームの送信処理
+
+```typescript
+// src/components/EquipmentForm.tsx から抜粋
+const onSubmit = (data: EquipmentFormData) => {
+  mutate(data, {
+    onSuccess: () => {
+      reset(); // フォームをリセット
+    }
+  });
+};
+
+return (
+  <form onSubmit={handleSubmit(onSubmit)} className="...">
+    {/* フォーム要素 */}
+  </form>
+);
+```
+
+`handleSubmit` 関数を使用して、フォームの送信処理を実装しています。この関数はバリデーションが成功した場合にのみ `onSubmit` コールバックを実行します。
+
+---
+
+### 2. zod によるスキーマバリデーション
+
+#### バリデーションスキーマの定義
+
+```typescript
+// src/components/EquipmentForm.tsx から抜粋
+const equipmentFormSchema = z.object({
+  name: z.string().min(1, "備品名は必須です"),
+  category: z.string().min(1, "カテゴリは必須です"),
+  status: z.enum(["使用中", "貸出中", "利用可能", "廃棄"], {
+    errorMap: () => ({ message: "有効なステータスを選択してください" })
+  }),
+  quantity: z
+    .number({ invalid_type_error: "数値を入力してください" })
+    .min(1, "最低1つ以上必要です"),
+  storageLocation: z.string().min(1, "保管場所は必須です"),
+  purchaseDate: z.string().min(1, "購入日は必須です"),
+  borrower: z.string().optional(),
+  notes: z.string().optional()
+});
+
+type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
+```
+
+`zod`を使用して、フォーム入力値のバリデーションスキーマを定義しています。各フィールドには適切な制約と、エラーメッセージが設定されています。
+
+#### zodResolver によるバリデーションの統合
+
+```typescript
+// src/components/EquipmentForm.tsx から抜粋
+import { zodResolver } from "@hookform/resolvers/zod";
+
+const {
+  register
+  // ...
+} = useForm<EquipmentFormData>({
+  resolver: zodResolver(equipmentFormSchema)
+  // ...
+});
+```
+
+`@hookform/resolvers/zod` パッケージの `zodResolver` を使用して、zod のバリデーションスキーマを react-hook-form と統合しています。
+
+---
+
+### 3. エラーメッセージの表示
+
+#### フィールドごとのエラーメッセージ表示
+
+```tsx
+// src/components/EquipmentForm.tsx から抜粋
+<div className="space-y-1">
+  <label htmlFor="name" className="...">
+    備品名<span className="ml-1 text-red-500">*</span>
+  </label>
+  <input
+    id="name"
+    type="text"
+    {...register("name")}
+    aria-invalid={errors.name ? "true" : "false"}
+    className={`... ${
+      errors.name ? "border-red-300 focus:border-red-500" : "..."
+    }`}
+  />
+  {errors.name && (
+    <p className="text-sm text-red-600 flex items-center" id="name-error">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-4 w-4 mr-1"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+      {errors.name.message}
+    </p>
+  )}
+</div>
+```
+
+各フォームフィールドでは、`errors` オブジェクトを確認し、エラーがある場合にのみエラーメッセージを表示しています。アクセシビリティのために `aria-invalid` 属性も設定しています。
+
+---
+
+### 4. 初期値の設定とフォームのリセット
+
+#### デフォルト値の設定
+
+```typescript
+// src/components/EquipmentForm.tsx から抜粋
+const {
+  // ...
+} = useForm<EquipmentFormData>({
+  // ...
+  defaultValues: {
+    status: "利用可能",
+    quantity: 1,
+    purchaseDate: new Date().toISOString().split("T")[0]
+  }
+});
+```
+
+`defaultValues` オプションを使用して、フォームフィールドの初期値を設定しています。
+
+#### フォームのリセット機能
+
+```tsx
+// src/components/EquipmentForm.tsx から抜粋
+<button type="button" onClick={() => reset()} className="...">
+  <svg>...</svg>
+  クリア
+</button>
+```
+
+`reset` 関数を使用して、クリアボタンを実装しています。この関数を呼び出すことで、フォームの入力値を初期値にリセットできます。
+
+---
+
+### 5. フォームのバリデーションタイミングの違い
+
+`react-hook-form` では以下の異なるバリデーションモードをサポートしています：
+
+| バリデーションモード | 特徴                                                 | メリット                                                                                           | デメリット                                                         | 適している場面                                                           |
+| -------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `onChange`           | フィールドの値が変更されるたびに実行                 | リアルタイムでフィードバックを提供し、即座にエラーを確認できる                                     | 頻繁なバリデーション実行によりパフォーマンスに影響する可能性がある | 即時フィードバックが重要な短いフォームや単純なバリデーションルール       |
+| `onBlur`             | フィールドからフォーカスが外れたときに実行           | 入力完了時にバリデーションを実行するため、中途半端な入力でエラーを表示せず、かつ送信前に確認できる | ユーザーが次のフィールドに移動するまでエラーが表示されない         | バランスの取れたユーザー体験を提供する一般的なフォーム                   |
+| `onSubmit`           | フォーム送信時にのみ実行                             | パフォーマンスが最も良く、ユーザーはフォーム完成までエラーに邪魔されない                           | エラーがあることを送信時まで知ることができず、修正に戻る必要がある | パフォーマンスが重要な長いフォームやウィザード形式のフォーム             |
+| `onTouched`          | フィールド操作後、値が変更されるたびに実行           | 初期表示時にエラーを表示せず、ユーザーの操作後にのみフィードバック提供                             | `onChange`と同様に頻繁なバリデーションが実行される                 | 初期状態ではエラーを表示せず、操作開始後にフィードバックを提供したい場合 |
+| `all`                | すべてのイベント（onChange, onBlur, onSubmit）で実行 | 最も包括的なバリデーションを提供                                                                   | パフォーマンスへの影響が最も大きい                                 | 高度なフィードバックが必要な重要なフォーム（金融取引、法的文書など）     |
+
+本プロジェクトでは、`onBlur` モードを採用しています。
