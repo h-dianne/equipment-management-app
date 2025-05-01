@@ -3,7 +3,8 @@ import {
   fetchEquipment,
   createEquipment,
   updateEquipment,
-  deleteEquipment
+  deleteEquipment,
+  Equipment
 } from "../api/equipment";
 
 // 定義: 備品データのキャッシュキー
@@ -56,7 +57,10 @@ export const useUpdateEquipment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: updateEquipment,
+    mutationFn: (params: {
+      id: string;
+      data: Partial<Omit<Equipment, "id" | "createdAt" | "updatedAt">>;
+    }) => updateEquipment(params.id, params.data),
     onSuccess: (data) => {
       // 成功時に特定の備品と全体のリストを更新
       queryClient.invalidateQueries({
