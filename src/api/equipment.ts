@@ -27,50 +27,10 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 // 備品情報を取得する関数
-/* export const fetchEquipment = async (): Promise<Equipment[]> => {
-  try {
-    const response = await axios.get<unknown>(`${API_BASE_URL}/api/equipments`);
-    return EquipmentsSchema.parse(response.data);
-  } catch (error) {
-    console.error("Error fetching equipment data:", error);
-    throw new Error("Failed to fetch equipment data");
-  }
-}; */
-
-// 備品情報を取得する関数
 export const fetchEquipment = async (): Promise<Equipment[]> => {
   try {
-    // ダミーデータ
-    const dummyData = [
-      {
-        id: "E001",
-        name: "MacBookノートパソコン",
-        category: "OA機器",
-        status: "使用中" as const,
-        quantity: 2,
-        storageLocation: "個人デスク",
-        purchaseDate: "2022-01-15",
-        borrower: "",
-        createdAt: "2022-01-15",
-        updatedAt: "2022-02-15",
-        notes: "AさんとBさんが使用中"
-      },
-      {
-        id: "E002",
-        name: "Sonyカメラ",
-        category: "OA機器",
-        status: "貸出中" as const,
-        quantity: 1,
-        storageLocation: "ロッカー①",
-        purchaseDate: "2022-01-15",
-        borrower: "Cさん",
-        createdAt: "2022-01-15",
-        updatedAt: "2022-02-15",
-        notes: "Cさんが使用中"
-      }
-    ];
-
-    return EquipmentsSchema.parse(dummyData);
+    const response = await axios.get<unknown>(`${API_BASE_URL}/equipments`);
+    return EquipmentsSchema.parse(response.data);
   } catch (error) {
     toast.error("備品データの取得に失敗しました");
     throw error;
@@ -81,7 +41,7 @@ export const fetchEquipment = async (): Promise<Equipment[]> => {
 export const fetchEquipmentById = async (id: string): Promise<Equipment> => {
   try {
     const response = await axios.get<unknown>(
-      `${API_BASE_URL}/api/equipments/${id}`
+      `${API_BASE_URL}/equipments/${id}`
     );
     return EquipmentSchema.parse(response.data);
   } catch (error) {
@@ -95,9 +55,16 @@ export const createEquipment = async (
   equipment: Omit<Equipment, "id" | "createdAt" | "updatedAt">
 ): Promise<Equipment> => {
   try {
+    const now = new Date().toISOString();
+    const newEquipment = {
+      ...equipment,
+      createdAt: now,
+      updatedAt: now
+    };
+
     const response = await axios.post<unknown>(
-      `${API_BASE_URL}/api/equipments`,
-      equipment
+      `${API_BASE_URL}/equipments`,
+      newEquipment
     );
     toast.success("備品を登録しました");
     return EquipmentSchema.parse(response.data);
@@ -113,9 +80,14 @@ export const updateEquipment = async (
   equipment: Partial<Omit<Equipment, "id" | "createdAt" | "updatedAt">>
 ): Promise<Equipment> => {
   try {
-    const response = await axios.put<unknown>(
-      `${API_BASE_URL}/api/equipments/${id}`,
-      equipment
+    const updateData = {
+      ...equipment,
+      updatedAt: new Date().toISOString()
+    };
+
+    const response = await axios.patch<unknown>(
+      `${API_BASE_URL}/equipments/${id}`,
+      updateData
     );
     toast.success("備品情報を更新しました");
     return EquipmentSchema.parse(response.data);
@@ -128,7 +100,7 @@ export const updateEquipment = async (
 // 備品情報を削除する関数
 export const deleteEquipment = async (id: string): Promise<void> => {
   try {
-    await axios.delete(`${API_BASE_URL}/api/equipments/${id}`);
+    await axios.delete(`${API_BASE_URL}/equipments/${id}`);
     toast.success("備品を削除しました");
   } catch (error) {
     toast.error(`ID: ${id} の備品削除に失敗しました`);

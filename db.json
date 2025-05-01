@@ -1,0 +1,56 @@
+{
+  "equipments": [
+    {
+      "id": "E001",
+      "name": "MacBookノートパソコン",
+      "category": "OA機器",
+      "status": "使用中",
+      "quantity": 2,
+      "storageLocation": "個人デスク",
+      "purchaseDate": "2022-01-15",
+      "borrower": "",
+      "createdAt": "2022-01-15",
+      "updatedAt": "2022-02-15",
+      "notes": "AさんとBさんが使用中"
+    },
+    {
+      "id": "E002",
+      "name": "Sonyカメラ",
+      "category": "OA機器",
+      "status": "貸出中",
+      "quantity": 1,
+      "storageLocation": "ロッカー①",
+      "purchaseDate": "2022-01-15",
+      "borrower": "Cさん",
+      "createdAt": "2022-01-15",
+      "updatedAt": "2022-02-15",
+      "notes": "Cさんが使用中"
+    },
+    {
+      "id": "7a25",
+      "name": "test",
+      "category": "OA機器",
+      "status": "利用可能",
+      "quantity": 1,
+      "storageLocation": "ロッカー①",
+      "purchaseDate": "2025-04-30",
+      "borrower": "",
+      "notes": "",
+      "createdAt": "2025-04-30T07:20:08.066Z",
+      "updatedAt": "2025-04-30T07:20:08.066Z"
+    },
+    {
+      "id": "4a34",
+      "name": "@@@",
+      "category": "@@",
+      "status": "利用可能",
+      "quantity": 1,
+      "storageLocation": "@@",
+      "purchaseDate": "2025-04-30",
+      "borrower": "",
+      "notes": "",
+      "createdAt": "2025-04-30T08:44:04.789Z",
+      "updatedAt": "2025-04-30T08:44:04.789Z"
+    }
+  ]
+}
