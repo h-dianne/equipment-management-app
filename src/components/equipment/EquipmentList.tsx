@@ -1,11 +1,8 @@
-import { useEquipments } from "../hooks/useEquipment";
-import { Equipment } from "../api/equipment";
-import { useEffect, useState } from "react";
+import { useEquipments } from "../../hooks/useEquipment";
+import { Equipment, EquipmentStatus } from "../../types/equipment";
+import { useEffect } from "react";
+import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import EquipmentForm from "../components/EquipmentForm";
-
-// Define status type using the same values as in the Equipment schema
-type EquipmentStatus = "使用中" | "貸出中" | "利用可能" | "廃棄";
 
 const statusColor: Record<EquipmentStatus, string> = {
   使用中: "bg-blue-100 text-blue-800",
@@ -17,7 +14,6 @@ const statusColor: Record<EquipmentStatus, string> = {
 const EquipmentList = () => {
   const { data, isLoading, isError, error, isSuccess, refetch } =
     useEquipments();
-  const [showForm, setShowForm] = useState(false);
 
   // 成功時
   useEffect(() => {
@@ -73,7 +69,6 @@ const EquipmentList = () => {
   if (isSuccess && (!data || data.length === 0)) {
     return (
       <div className="p-6 max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">備品一覧</h1>
         <div className="bg-white shadow rounded-lg p-8 text-center">
           <svg
             className="mx-auto h-12 w-12 text-gray-400"
@@ -89,14 +84,7 @@ const EquipmentList = () => {
             />
           </svg>
           <p className="mt-4 text-gray-500">備品が見つかりませんでした</p>
-          <button
-            className="mt-4 px-4 py-2 bg-primary-600 text-gray-700 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-            onClick={() => setShowForm(true)}
-          >
-            備品を追加
-          </button>
         </div>
-        {showForm && <EquipmentForm />}
       </div>
     );
   }
@@ -105,51 +93,6 @@ const EquipmentList = () => {
   return (
     // Global container
     <div className="p-6 max-w-7xl mx-auto">
-      {/* Header with refresh button */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">備品一覧</h1>
-        <div className="flex space-x-3">
-          <button
-            onClick={() => refetch()}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-          >
-            <svg
-              className="h-4 w-4 mr-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            更新
-          </button>
-          <button
-            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-gray-700 bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-            onClick={() => setShowForm(!showForm)}
-          >
-            <svg
-              className="h-4 w-4 mr-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            {showForm ? "登録フォームを閉じる" : "備品を追加"}
-          </button>
-        </div>
-      </div>
-
       {/* Equipment List */}
       <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {data?.map((item: Equipment) => (
@@ -166,7 +109,7 @@ const EquipmentList = () => {
                 </h3>
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    statusColor[item.status as EquipmentStatus]
+                    statusColor[item.status]
                   }`}
                 >
                   {item.status}
@@ -201,20 +144,45 @@ const EquipmentList = () => {
               <div className="text-xs text-gray-500">
                 登録日: {new Date(item.createdAt).toLocaleDateString("ja-JP")}
               </div>
-              {/* <div className="flex space-x-2">
-                <button className="text-primary-600 hover:text-primary-900 text-sm font-medium">
+              <div className="flex space-x-2">
+                <Link
+                  to={`/detail/${item.id}`}
+                  className="px-3 py-1.5 text-xs bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors flex items-center"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-3.5 w-3.5 mr-1"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                    <path
+                      fillRule="evenodd"
+                      d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
                   詳細
-                </button>
-                <button className="text-primary-600 hover:text-primary-900 text-sm font-medium">
+                </Link>
+                <Link
+                  to={`/edit/${item.id}`}
+                  className="px-3 py-1.5 text-xs bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition-colors flex items-center"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-3.5 w-3.5 mr-1"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
                   編集
-                </button>
-              </div> */}
+                </Link>
+              </div>
             </div>
           </div>
         ))}
       </div>
-      {/* Registration Form */}
-      {showForm && <EquipmentForm />}
     </div>
   );
 };

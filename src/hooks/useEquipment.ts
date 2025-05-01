@@ -3,9 +3,9 @@ import {
   fetchEquipment,
   createEquipment,
   updateEquipment,
-  deleteEquipment,
-  Equipment
-} from "../api/equipment";
+  deleteEquipment
+} from "../api/equipmentApi";
+import { Equipment } from "../types/equipment";
 
 // 定義: 備品データのキャッシュキー
 export const equipmentKeys = {
