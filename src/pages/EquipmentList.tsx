@@ -1,7 +1,8 @@
 import { useEquipments } from "../hooks/useEquipment";
 import { Equipment } from "../api/equipment";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import EquipmentForm from "../components/EquipmentForm";
 
 // Define status type using the same values as in the Equipment schema
 type EquipmentStatus = "使用中" | "貸出中" | "利用可能" | "廃棄";
@@ -16,6 +17,7 @@ const statusColor: Record<EquipmentStatus, string> = {
 const EquipmentList = () => {
   const { data, isLoading, isError, error, isSuccess, refetch } =
     useEquipments();
+  const [showForm, setShowForm] = useState(false);
 
   // 成功時
   useEffect(() => {
@@ -27,7 +29,7 @@ const EquipmentList = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-pulse text-primary-500">読み込み中...</div>
+        <div className="animate-pulse text-gray-500">読み込み中...</div>
       </div>
     );
   }
@@ -87,8 +89,14 @@ const EquipmentList = () => {
             />
           </svg>
           <p className="mt-4 text-gray-500">備品が見つかりませんでした</p>
-          <button className="mt-4 btn-primary">備品を追加</button>
+          <button
+            className="mt-4 px-4 py-2 bg-primary-600 text-gray-700 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            onClick={() => setShowForm(true)}
+          >
+            備品を追加
+          </button>
         </div>
+        {showForm && <EquipmentForm />}
       </div>
     );
   }
@@ -103,7 +111,7 @@ const EquipmentList = () => {
         <div className="flex space-x-3">
           <button
             onClick={() => refetch()}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
           >
             <svg
               className="h-4 w-4 mr-1"
@@ -120,7 +128,10 @@ const EquipmentList = () => {
             </svg>
             更新
           </button>
-          {/* <button className="btn-primary inline-flex items-center">
+          <button
+            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-gray-700 bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            onClick={() => setShowForm(!showForm)}
+          >
             <svg
               className="h-4 w-4 mr-1"
               fill="none"
@@ -134,8 +145,8 @@ const EquipmentList = () => {
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            備品を追加
-          </button> */}
+            {showForm ? "登録フォームを閉じる" : "備品を追加"}
+          </button>
         </div>
       </div>
 
@@ -202,6 +213,8 @@ const EquipmentList = () => {
           </div>
         ))}
       </div>
+      {/* Registration Form */}
+      {showForm && <EquipmentForm />}
     </div>
   );
 };
