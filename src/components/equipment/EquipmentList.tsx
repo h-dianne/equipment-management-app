@@ -1,15 +1,10 @@
 import { useEquipments } from "../../hooks/useEquipment";
-import { Equipment, EquipmentStatus } from "../../types/equipment";
+import { Equipment } from "../../types/equipment";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { formatDate } from "../../utils/dateUtils";
+import { getStatusColor } from "../../utils/statusUtils";
 import toast from "react-hot-toast";
-
-const statusColor: Record<EquipmentStatus, string> = {
-  使用中: "bg-blue-100 text-blue-800",
-  貸出中: "bg-yellow-100 text-yellow-800",
-  利用可能: "bg-green-100 text-green-800",
-  廃棄: "bg-gray-100 text-gray-800"
-};
 
 const EquipmentList = () => {
   const { data, isLoading, isError, error, isSuccess, refetch } =
@@ -22,6 +17,7 @@ const EquipmentList = () => {
     }
   }, [isSuccess, data]);
 
+  // ローディング時
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -30,6 +26,7 @@ const EquipmentList = () => {
     );
   }
 
+  // エラー時
   if (isError) {
     return (
       <div className="p-6 max-w-7xl mx-auto">
@@ -108,9 +105,9 @@ const EquipmentList = () => {
                   {item.name}
                 </h3>
                 <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    statusColor[item.status]
-                  }`}
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                    item.status
+                  )}`}
                 >
                   {item.status}
                 </span>
@@ -142,12 +139,13 @@ const EquipmentList = () => {
             </div>
             <div className="bg-gray-50 px-4 py-3 flex justify-between mt-auto">
               <div className="text-xs text-gray-500">
-                登録日: {new Date(item.createdAt).toLocaleDateString("ja-JP")}
+                登録日: {formatDate(item.createdAt)}
               </div>
               <div className="flex space-x-2">
                 <Link
                   to={`/detail/${item.id}`}
-                  className="px-3 py-1.5 text-xs bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors flex items-center"
+                  className="px-3 py-1.5 text-xs bg-blue-50 text-blue-700 rounded-md
+                  hover:bg-blue-100 transition-colors flex items-center"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -166,7 +164,8 @@ const EquipmentList = () => {
                 </Link>
                 <Link
                   to={`/edit/${item.id}`}
-                  className="px-3 py-1.5 text-xs bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition-colors flex items-center"
+                  className="px-3 py-1.5 text-xs bg-green-50 text-green-700 rounded-md
+                  hover:bg-green-100 transition-colors flex items-center"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
