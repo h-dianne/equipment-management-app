@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import Layout from "./components/common/Layout";
 import HomePage from "./pages/Homepage";
 import RegisterPage from "./pages/RegisterPage";
+import DetailPage from "./pages/DetailPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
 function App() {
@@ -16,11 +17,8 @@ function App() {
           <Route path="home" element={<HomePage />} />
           <Route path="register" element={<RegisterPage />} />
 
-          {/* Example of dynamic route - would be implemented later */}
-          <Route
-            path="detail/:id"
-            element={<div>備品詳細ページ (実装予定)</div>}
-          />
+          {/* Dynamic routes*/}
+          <Route path="detail/:id" element={<DetailPage />} />
           <Route
             path="edit/:id"
             element={<div>備品編集ページ (実装予定)</div>}

@@ -3,7 +3,8 @@ import {
   fetchEquipment,
   createEquipment,
   updateEquipment,
-  deleteEquipment
+  deleteEquipment,
+  fetchEquipmentById
 } from "../api/equipmentApi";
 import { Equipment } from "../types/equipment";
 
@@ -82,5 +83,13 @@ export const useDeleteEquipment = () => {
       queryClient.removeQueries({ queryKey: equipmentKeys.details(variables) });
       queryClient.invalidateQueries({ queryKey: equipmentKeys.all });
     }
+  });
+};
+
+export const useEquipmentById = (id: string) => {
+  return useQuery({
+    queryKey: equipmentKeys.details(id),
+    queryFn: () => fetchEquipmentById(id),
+    enabled: !!id
   });
 };
