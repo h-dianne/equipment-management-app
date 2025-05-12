@@ -1,35 +1,34 @@
-import EquipmentList from "./pages/EquipmentList";
-import { Toaster } from "react-hot-toast";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import Layout from "./components/common/Layout";
+import HomePage from "./pages/Homepage";
+import RegisterPage from "./pages/RegisterPage";
+import DetailPage from "./pages/DetailPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 function App() {
   return (
-    <>
-      <EquipmentList />
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          duration: 2000,
-          style: {
-            borderRadius: "8px",
-            background: "#fff",
-            color: "#333"
-          },
-          success: {
-            style: {
-              border: "1px solid #10B981",
-              borderLeft: "4px solid #10B981"
-            }
-          },
-          error: {
-            style: {
-              border: "1px solid #EF4444",
-              borderLeft: "4px solid #EF4444"
-            },
-            duration: 3000
-          }
-        }}
-      />
-    </>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          {/* Index route - redirects to home */}
+          <Route index element={<Navigate to="/home" replace />} />
+
+          {/* Main routes */}
+          <Route path="home" element={<HomePage />} />
+          <Route path="register" element={<RegisterPage />} />
+
+          {/* Dynamic routes*/}
+          <Route path="detail/:id" element={<DetailPage />} />
+          <Route
+            path="edit/:id"
+            element={<div>備品編集ページ (実装予定)</div>}
+          />
+
+          {/* 404 route */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 

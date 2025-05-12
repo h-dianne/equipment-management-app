@@ -1,14 +1,22 @@
-// src\api\equipment.ts
-
 import axios from "axios";
 import { z } from "zod";
 import toast from "react-hot-toast";
+import { Equipment } from "../types/equipment";
 
 export const EquipmentSchema = z.object({
   id: z.string(), // 管理番号
   name: z.string(), // 備品名
-  category: z.string(), // カテゴリ (例: 事務用品、OA機器、家具など)
-  status: z.enum(["使用中", "貸出中", "利用可能", "廃棄"]), // ステータス
+  category: z.enum([
+    "電子機器",
+    "オフィス家具",
+    "工具・作業用品",
+    "AV機器・周辺機器",
+    "消耗品",
+    "防災・安全用品",
+    "レンタル備品",
+    "社用車関連品"
+  ] as const), // カテゴリ
+  status: z.enum(["使用中", "貸出中", "利用可能", "廃棄"] as const), // ステータス
   quantity: z.number(), // 在庫数
   storageLocation: z.string(), // 保管場所
   purchaseDate: z.string(), // 購入日 (YYYY-MM-DD形式)
@@ -19,8 +27,7 @@ export const EquipmentSchema = z.object({
 });
 
 export const EquipmentsSchema = z.array(EquipmentSchema);
-export type Equipment = z.infer<typeof EquipmentSchema>;
-export type Equipments = z.infer<typeof EquipmentsSchema>;
+export type Equipments = Equipment[];
 
 // API base URL
 const API_BASE_URL =

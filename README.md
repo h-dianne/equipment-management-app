@@ -313,7 +313,15 @@ const {
 });
 ```
 
-react-hook-form の `useForm` フックを使用してフォームの状態を管理しています。このフックはフォームの入力値、エラー状態、送信処理などを扱います。
+このプロジェクトでは、`react-hook-form` の非制御コンポーネントアプローチを採用しています。`register` 関数を使用して直接 DOM 要素を登録することで、React の状態更新を介さずにフォームの値を管理しています。
+
+これにより以下の利点があります：
+
+1. **パフォーマンスの向上:** 入力ごとの再レンダリングが発生しないため、大規模なフォームでも高速に動作します
+2. **実装の簡素化:**`Controller` コンポーネントや個別の `onChange` ハンドラが不要となり、コードが簡潔になります
+3. **メモリ効率:** React の状態を介さないため、メモリ使用量が削減されます
+
+標準的な HTML 入力要素では、この `register` アプローチで十分機能します。サードパーティのコンポーネントライブラリやカスタム入力コンポーネントが必要な場合のみ、`Controller` コンポーネントの使用を検討します。
 
 #### フォームの送信処理
 
@@ -404,20 +412,6 @@ const {
   />
   {errors.name && (
     <p className="text-sm text-red-600 flex items-center" id="name-error">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        className="h-4 w-4 mr-1"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-        />
-      </svg>
       {errors.name.message}
     </p>
   )}
@@ -475,3 +469,218 @@ const {
 | `all`                | すべてのイベント（onChange, onBlur, onSubmit）で実行 | 最も包括的なバリデーションを提供                                                                   | パフォーマンスへの影響が最も大きい                                 | 高度なフィードバックが必要な重要なフォーム（金融取引、法的文書など）     |
 
 本プロジェクトでは、`onBlur` モードを採用しています。
+
+---
+
+## Task 3. ページ遷移（ルーティング）の実装方法の習得
+
+このプロジェクトでは、以下のライブラリを使用してページ遷移とルーティングを実装しました：
+
+- [**react-router-dom**](https://reactrouter.com/en/main): React アプリケーションのルーティングとナビゲーションを管理するためのライブラリ
+
+以下は、各検証項目ごとの実装内容です。
+
+### 1. 基本的なルート定義と`<Route>`コンポーネントの使用方法
+
+#### ルート定義と階層構造
+
+```tsx
+// src/App.tsx から抜粋
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          {/* インデックスルート - ホームにリダイレクト */}
+          <Route index element={<Navigate to="/home" replace />} />
+
+          {/* メインルート */}
+          <Route path="home" element={<HomePage />} />
+          <Route path="register" element={<RegisterPage />} />
+
+          {/* 動的ルート */}
+          <Route path="detail/:id" element={<DetailPage />} />
+          <Route path="edit/:id" element={<EditPage />} />
+
+          {/* 404ルート */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
+```
+
+`<BrowserRouter>` コンポーネントを使用してルーティングのコンテキストを提供し、`<Routes>` と `<Route>` コンポーネントを使用して URL パスと対応するコンポーネントをマッピングしています。この例では、ルート定義を階層的に構成し、親ルート（`<Layout />`）の中に子ルートをネストさせています。
+
+---
+
+### 2. 動的ルートパラメータとクエリパラメータの取得方法
+
+#### 動的ルートパラメータの取得
+
+```tsx
+// src/pages/DetailPage.tsx から抜粋
+import { useParams } from "react-router-dom";
+import { useEquipmentById } from "../hooks/useEquipment";
+
+const DetailPage = () => {
+  // URL から id パラメータを取得
+  const { id } = useParams<{ id: string }>();
+
+  // id を使って特定の備品データを取得
+  const { data: equipment, isLoading, isError } = useEquipmentById(id || "");
+
+  // ...詳細ページのレンダリングロジック
+};
+```
+
+`useParams` フックを使用して、URL から動的パラメータ（`:id`）を取得しています。この例では、備品の詳細ページで特定の備品 ID を URL から取得し、その ID を使ってデータを取得しています。
+
+#### クエリパラメータの取得
+
+```tsx
+// src/pages/HomePage.tsx から抜粋
+import { useSearchParams } from "react-router-dom";
+
+const HomePage = () => {
+  // URL クエリパラメータの取得と設定
+  const [searchParams, setSearchParams] = useSearchParams();
+  const category = searchParams.get("category") || "";
+  const status = searchParams.get("status") || "";
+
+  // フィルタリングの適用
+  const handleFilter = (newCategory: string, newStatus: string) => {
+    const params = new URLSearchParams();
+    if (newCategory) params.set("category", newCategory);
+    if (newStatus) params.set("status", newStatus);
+    setSearchParams(params);
+  };
+
+  // ...ホームページのレンダリングロジック
+};
+```
+
+`useSearchParams` フックを使用して、URL からクエリパラメータを取得・設定しています。この例では、備品リストをカテゴリやステータスでフィルタリングするために、クエリパラメータを活用しています。
+
+---
+
+### 3. ネストされたルーティングとレイアウト構成
+
+#### 共通レイアウトの実装
+
+```tsx
+// src/components/common/Layout.tsx から抜粋
+import { Outlet } from "react-router-dom";
+import Navbar from "./Navbar";
+
+const Layout = () => {
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Navbar />
+      <main className="container mx-auto px-4 py-6 flex-grow">
+        <Outlet />
+      </main>
+      <footer className="bg-gray-800 text-white py-4">
+        <div className="container mx-auto px-4 text-center">
+          &copy; {new Date().getFullYear()} 備品管理システム
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default Layout;
+```
+
+ネストされたルーティングを活用して、共通のレイアウト（ヘッダー、フッターなど）を持つページ構造を実装しています。`<Layout>` コンポーネントは、すべてのページに共通するナビゲーションバーとフッターを含み、中央のコンテンツ領域は `<Outlet>` を使って子ルートのコンポーネントを表示しています。
+
+---
+
+### 4. `<Outlet>`コンポーネントの使用
+
+```tsx
+// src/components/common/Layout.tsx から抜粋
+<main className="container mx-auto px-4 py-6 flex-grow">
+  <Outlet />
+</main>
+```
+
+`<Outlet>` コンポーネントは、親ルートの中で子ルートのコンポーネントを表示するためのプレースホルダーとして機能します。これにより、レイアウトを再利用しながら、内部コンテンツだけを変更することができます。
+
+---
+
+### 5. ナビゲーション（useNavigate, `<Link>`）の実装
+
+#### 宣言的なナビゲーション（`<Link>`）
+
+```tsx
+// src/components/common/Navbar.tsx から抜粋
+import { Link, useLocation } from "react-router-dom";
+
+const Navbar = () => {
+  const currentPage = useLocation();
+
+  const knownRoutes = ["/", "/home", "/register", "/detail", "/edit"];
+
+  const isKnownRoute = knownRoutes.some(
+    (route) =>
+      currentPage.pathname === route ||
+      (route !== "/" && currentPage.pathname.startsWith(route + "/"))
+  );
+
+  return (
+    <nav className="bg-gray-800 text-white shadow-md">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex justify-between items-center">
+          <Link to="/" className="text-xl font-bold">
+            備品管理システム
+          </Link>
+          <div className="space-x-4">
+            {isKnownRoute && (
+              <Link
+                to="/register"
+                className="px-4 py-2 text-sm text-gray-900 bg-slate-400
+              hover:bg-slate-600 hover:text-white rounded-md transition-colors"
+              >
+                新規登録
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+export default Navbar;
+```
+
+`<Link>` コンポーネントを使用して、宣言的なナビゲーションを実装しています。このコンポーネントは、内部的には `history.pushState()` API を使用してページを再読み込みせずに URL を変更します。
+
+#### プログラムによるナビゲーション（useNavigate）
+
+```tsx
+// src/components/equipment/EquipmentForm.tsx から抜粋
+import { useNavigate } from "react-router-dom";
+
+const EquipmentForm = () => {
+  const navigate = useNavigate();
+  const { mutate, isPending } = useCreateEquipment();
+
+  const onSubmit = (data: EquipmentFormData) => {
+    mutate(data, {
+      onSuccess: () => {
+        reset();
+        navigate("/"); // ホームページにリダイレクト
+      }
+    });
+  };
+
+  // ...フォームのレンダリングロジック
+};
+```
+
+`useNavigate` フックを使用して、プログラムによるナビゲーションを実装しています。この例では、フォーム送信が成功した後に、ユーザーをホームページにリダイレクトしています。
+
+---

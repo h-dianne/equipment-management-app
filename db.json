@@ -3,7 +3,7 @@
     {
       "id": "E001",
       "name": "MacBookノートパソコン",
-      "category": "OA機器",
+      "category": "AV機器・周辺機器",
       "status": "使用中",
       "quantity": 2,
       "storageLocation": "個人デスク",
@@ -16,7 +16,7 @@
     {
       "id": "E002",
       "name": "Sonyカメラ",
-      "category": "OA機器",
+      "category": "AV機器・周辺機器",
       "status": "貸出中",
       "quantity": 1,
       "storageLocation": "ロッカー①",
@@ -29,7 +29,7 @@
     {
       "id": "7a25",
       "name": "test",
-      "category": "OA機器",
+      "category": "AV機器・周辺機器",
       "status": "利用可能",
       "quantity": 1,
       "storageLocation": "ロッカー①",
@@ -42,7 +42,7 @@
     {
       "id": "4a34",
       "name": "@@@",
-      "category": "@@",
+      "category": "AV機器・周辺機器",
       "status": "利用可能",
       "quantity": 1,
       "storageLocation": "@@",
@@ -51,6 +51,45 @@
       "notes": "",
       "createdAt": "2025-04-30T08:44:04.789Z",
       "updatedAt": "2025-04-30T08:44:04.789Z"
+    },
+    {
+      "id": "ac7a",
+      "name": "test",
+      "category": "AV機器・周辺機器",
+      "status": "廃棄",
+      "quantity": 1,
+      "storageLocation": "ロッカー①",
+      "purchaseDate": "2025-05-01",
+      "borrower": "",
+      "notes": "",
+      "createdAt": "2025-05-01T06:21:08.105Z",
+      "updatedAt": "2025-05-01T06:21:08.105Z"
+    },
+    {
+      "id": "a1f6",
+      "name": "test",
+      "category": "AV機器・周辺機器",
+      "status": "利用可能",
+      "quantity": 1,
+      "storageLocation": "ロッカー",
+      "purchaseDate": "2025-05-01",
+      "borrower": "",
+      "notes": "",
+      "createdAt": "2025-05-01T07:10:32.508Z",
+      "updatedAt": "2025-05-01T07:10:32.508Z"
+    },
+    {
+      "id": "1631",
+      "name": "test",
+      "category": "AV機器・周辺機器",
+      "status": "利用可能",
+      "quantity": 1,
+      "storageLocation": "ロッカー",
+      "purchaseDate": "2025-05-01",
+      "borrower": "",
+      "notes": "",
+      "createdAt": "2025-05-01T07:14:00.018Z",
+      "updatedAt": "2025-05-01T07:14:00.018Z"
     }
   ]
 }

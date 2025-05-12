@@ -4,8 +4,9 @@ import {
   createEquipment,
   updateEquipment,
   deleteEquipment,
-  Equipment
-} from "../api/equipment";
+  fetchEquipmentById
+} from "../api/equipmentApi";
+import { Equipment } from "../types/equipment";
 
 // 定義: 備品データのキャッシュキー
 export const equipmentKeys = {
@@ -82,5 +83,13 @@ export const useDeleteEquipment = () => {
       queryClient.removeQueries({ queryKey: equipmentKeys.details(variables) });
       queryClient.invalidateQueries({ queryKey: equipmentKeys.all });
     }
+  });
+};
+
+export const useEquipmentById = (id: string) => {
+  return useQuery({
+    queryKey: equipmentKeys.details(id),
+    queryFn: () => fetchEquipmentById(id),
+    enabled: !!id
   });
 };
