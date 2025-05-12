@@ -6,9 +6,23 @@ import { formatDate } from "../../utils/dateUtils";
 import { getStatusColor } from "../../utils/statusUtils";
 import toast from "react-hot-toast";
 
-const EquipmentList = () => {
+interface EquipmentListProps {
+  categoryFilter?: string;
+  statusFilter?: string;
+}
+
+const EquipmentList = ({
+  categoryFilter = "",
+  statusFilter = ""
+}: EquipmentListProps) => {
   const { data, isLoading, isError, error, isSuccess, refetch } =
     useEquipments();
+
+  const filteredData = data?.filter((item) => {
+    const matchesCategory = !categoryFilter || item.category === categoryFilter;
+    const matchesStatus = !statusFilter || item.status === statusFilter;
+    return matchesCategory && matchesStatus;
+  });
 
   // 成功時
   useEffect(() => {
@@ -63,24 +77,11 @@ const EquipmentList = () => {
   }
 
   // データが空の場合
-  if (isSuccess && (!data || data.length === 0)) {
+  if (isSuccess && (!filteredData || filteredData.length === 0)) {
     return (
       <div className="p-6 max-w-7xl mx-auto">
         <div className="bg-white shadow rounded-lg p-8 text-center">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="1"
-              d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h10a2 2 0 012 2v14a2 2 0 01-2 2z"
-            />
-          </svg>
-          <p className="mt-4 text-gray-500">備品が見つかりませんでした</p>
+          <p className="text-gray-500">備品が見つかりませんでした</p>
         </div>
       </div>
     );
@@ -92,7 +93,7 @@ const EquipmentList = () => {
     <div className="p-6 max-w-7xl mx-auto">
       {/* Equipment List */}
       <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {data?.map((item: Equipment) => (
+        {filteredData?.map((item: Equipment) => (
           <div
             key={item.id}
             className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200"
