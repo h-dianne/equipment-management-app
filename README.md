@@ -684,3 +684,214 @@ const EquipmentForm = () => {
 `useNavigate` フックを使用して、プログラムによるナビゲーションを実装しています。この例では、フォーム送信が成功した後に、ユーザーをホームページにリダイレクトしています。
 
 ---
+
+## Task 4. グローバルステート管理の実装方法の習得
+
+このプロジェクトでは、以下のライブラリを使用してグローバルステート管理を実装しました：
+
+- [**zustand**](https://github.com/pmndrs/zustand): シンプルで軽量なグローバルステート管理ライブラリ
+- [**zustand/middleware**](https://github.com/pmndrs/zustand#middleware): devtools デバッグ統合のためのミドルウェア
+
+以下は、各検証項目ごとの実装内容です。
+
+### 1. ストアの定義と利用（create, useStore）
+
+#### 基本的なストア作成
+
+```typescript
+// src/stores/filterStore.ts から抜粋
+import { create } from "zustand";
+import { devtools } from "zustand/middleware";
+import { EquipmentCategory, EquipmentStatus } from "../types/equipment";
+
+interface FilterState {
+  // State
+  categoryFilter: EquipmentCategory | "";
+  statusFilter: EquipmentStatus | "";
+
+  // Actions
+  setCategoryFilter: (category: EquipmentCategory | "") => void;
+  setStatusFilter: (status: EquipmentStatus | "") => void;
+  clearFilters: () => void;
+}
+
+// ストアを定義
+const useFilterStore = create<FilterState>()(
+  devtools(
+    (set) => ({
+      // Initial State
+      categoryFilter: "",
+      statusFilter: "",
+
+      // Actions
+      setCategoryFilter: (category) =>
+        set({ categoryFilter: category }, false, "setCategoryFilter")
+      // ...他のアクション
+    }),
+    { name: "Filter Store" }
+  )
+);
+
+export default useFilterStore;
+```
+
+`create` 関数を使用して、グローバルステートのストアを作成しています。ストアの定義には、初期状態（state）とその状態を更新するためのアクション（actions）を含めています。
+
+#### コンポーネントでのストア利用
+
+```tsx
+// src/pages/Homepage.tsx から抜粋
+import useFilterStore from "../stores/filterStore";
+
+const HomePage = () => {
+  const {
+    categoryFilter,
+    statusFilter,
+    setCategoryFilter,
+    setStatusFilter,
+    clearFilters
+  } = useFilterStore();
+
+  // フィルタリング機能
+  const handleCategoryChange = (category: EquipmentCategory | "") => {
+    setCategoryFilter(category);
+    updateUrl();
+  };
+
+  // ...ホームページのレンダリングロジック
+};
+```
+
+コンポーネント内で `useFilterStore` フックを使用して、グローバルステートとその更新関数にアクセスしています。これにより、プロップドリリング（props の深い階層への受け渡し）を避けながら、複数のコンポーネント間でステートを共有できます。
+
+---
+
+### 2. ステートの読み取りと更新
+
+#### 単純なステート更新
+
+```typescript
+// src/stores/filterStore.ts から抜粋
+setCategoryFilter: (category) =>
+  set({ categoryFilter: category }, false, "setCategoryFilter"),
+setStatusFilter: (status) =>
+  set({ statusFilter: status }, false, "setStatusFilter"),
+clearFilters: () =>
+  set({ categoryFilter: "", statusFilter: "" }, false, "clearFilters")
+```
+
+`set` 関数を使用して、ストアの状態を更新しています。引数として新しい状態のオブジェクトを渡すことで、既存の状態と自動的にマージされます。
+
+#### コンポーネントでのステート読み取り
+
+```typescript
+// src/components/equipment/EquipmentList.tsx から抜粋
+import useFilterStore from "../../stores/filterStore";
+
+const EquipmentList = () => {
+  // Get filters from global store
+  const { categoryFilter, statusFilter } = useFilterStore();
+
+  // ステートを使ったフィルタリング
+  const filteredData = data?.filter((item) => {
+    const matchesCategory = !categoryFilter || item.category === categoryFilter;
+    const matchesStatus = !statusFilter || item.status === statusFilter;
+    return matchesCategory && matchesStatus;
+  });
+
+  // ...リストのレンダリングロジック
+};
+```
+
+コンポーネント内で、ストアから取得したステートを使って、表示データのフィルタリングを行っています。ステートが更新されると、自動的にコンポーネントが再レンダリングされます。
+
+#### 前の状態を参照する複雑な更新
+
+```typescript
+// src/stores/equipmentStore.ts から抜粋
+addToRecentlyViewed: (equipmentId) =>
+  set(
+    (state) => {
+      // Remove duplicates and add to beginning
+      const newRecentlyViewed = [
+        equipmentId,
+        ...state.recentlyViewed.filter((id) => id !== equipmentId)
+      ].slice(0, 5);
+
+      return { recentlyViewed: newRecentlyViewed };
+    },
+    false,
+    "addToRecentlyViewed"
+  ),
+```
+
+前の状態に基づいて更新を行うために、`set` 関数にコールバック関数を渡しています。この例では、最近表示した備品の ID リストを管理し、新しい ID を追加する際に、重複を除去して最大 5 つまでに制限しています。
+
+---
+
+### 3. ストアの分割とモジュール化
+
+本プロジェクトでは、機能ごとに複数のストアを作成し、責任を分離しています。
+
+#### 機能ごとのストア分割
+
+1. **`filterStore.ts`** - 備品リストのフィルタリング機能を担当
+
+```typescript
+// src/stores/filterStore.ts
+const useFilterStore = create<FilterState>()(/* ... */);
+```
+
+2. **`equipmentStore.ts`** - 選択された備品と閲覧履歴の管理を担当
+
+```typescript
+// src/stores/equipmentStore.ts
+const useEquipmentStore = create<EquipmentState>()(/* ... */);
+```
+
+この設計により、各ストアは特定の機能領域に焦点を当て、コードベースの保守性と可読性が向上します。
+
+---
+
+### 4. React DevTools との連携とデバッグ
+
+#### devtools ミドルウェアの統合
+
+```typescript
+// src/stores/filterStore.ts から抜粋
+import { devtools } from "zustand/middleware";
+
+const useFilterStore = create<FilterState>()(
+  devtools(
+    (set) => ({
+      // ストアの内容
+    }),
+    { name: "Filter Store" } // DevTools でのストア名
+  )
+);
+```
+
+`devtools` ミドルウェアを使用して、Redux DevTools エクステンションとの統合を実装しています。これにより、ブラウザの開発者ツールでステート変更の履歴を追跡し、デバッグできます。
+
+#### アクション名のラベル付け
+
+```typescript
+// src/stores/equipmentStore.ts から抜粋
+selectEquipment: (equipment) =>
+  set({ selectedEquipment: equipment }, false, "selectEquipment"),
+```
+
+`set` 関数の第三引数にアクション名を指定することで、DevTools でのアクションの追跡が容易になります。このラベルは、ステート変更の原因を特定する際に役立ちます。
+
+#### デバッグの利用方法
+
+1. ブラウザに [Redux DevTools 拡張機能](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd) をインストールします
+2. アプリケーションを開発モードで実行します
+3. ブラウザの開発者ツールで Redux タブを開きます
+4. ドロップダウンメニューから目的のストア（"Filter Store" または "Equipment Store"）を選択します
+5. アプリケーションの操作時に発生するステート変更を監視できます
+6. タイムトラベル機能を使用して、過去の状態に戻ることもできます
+
+このデバッグ機能により、複雑なステート変更のトラブルシューティングが容易になり、開発効率が向上します。
+
+---
