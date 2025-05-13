@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { devtools } from "zustand/middleware";
 import { EquipmentCategory, EquipmentStatus } from "../types/equipment";
 
 interface FilterState {
@@ -13,15 +14,23 @@ interface FilterState {
 }
 
 // ストアを定義
-const useFilterStore = create<FilterState>((set) => ({
-  // Initial State
-  categoryFilter: "",
-  statusFilter: "",
+const useFilterStore = create<FilterState>()(
+  devtools(
+    (set) => ({
+      // Initial State
+      categoryFilter: "",
+      statusFilter: "",
 
-  // Actions
-  setCategoryFilter: (category) => set({ categoryFilter: category }),
-  setStatusFilter: (status) => set({ statusFilter: status }),
-  clearFilters: () => set({ categoryFilter: "", statusFilter: "" })
-}));
+      // Actions
+      setCategoryFilter: (category) =>
+        set({ categoryFilter: category }, false, "setCategoryFilter"),
+      setStatusFilter: (status) =>
+        set({ statusFilter: status }, false, "setStatusFilter"),
+      clearFilters: () =>
+        set({ categoryFilter: "", statusFilter: "" }, false, "clearFilters")
+    }),
+    { name: "Filter Store" }
+  )
+);
 
 export default useFilterStore;

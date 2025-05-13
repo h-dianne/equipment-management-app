@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { devtools } from "zustand/middleware";
 import { Equipment } from "../types/equipment";
 
 interface EquipmentState {
@@ -13,26 +14,37 @@ interface EquipmentState {
 }
 
 // ストアを定義
-const useEquipmentStore = create<EquipmentState>((set) => ({
-  // Initial State
-  selectedEquipment: null,
-  recentlyViewed: [],
+const useEquipmentStore = create<EquipmentState>()(
+  devtools(
+    (set) => ({
+      // Initial State
+      selectedEquipment: null,
+      recentlyViewed: [],
 
-  // Actions
-  selectEquipment: (equipment) => set({ selectedEquipment: equipment }),
+      // Actions
+      selectEquipment: (equipment) =>
+        set({ selectedEquipment: equipment }, false, "selectEquipment"),
 
-  addToRecentlyViewed: (equipmentId) =>
-    set((state) => {
-      // Remove duplicates and add to beginning
-      const newRecentlyViewed = [
-        equipmentId,
-        ...state.recentlyViewed.filter((id) => id !== equipmentId)
-      ].slice(0, 5);
+      addToRecentlyViewed: (equipmentId) =>
+        set(
+          (state) => {
+            // Remove duplicates and add to beginning
+            const newRecentlyViewed = [
+              equipmentId,
+              ...state.recentlyViewed.filter((id) => id !== equipmentId)
+            ].slice(0, 5);
 
-      return { recentlyViewed: newRecentlyViewed };
+            return { recentlyViewed: newRecentlyViewed };
+          },
+          false,
+          "addToRecentlyViewed"
+        ),
+
+      clearRecentlyViewed: () =>
+        set({ recentlyViewed: [] }, false, "clearRecentlyViewed")
     }),
-
-  clearRecentlyViewed: () => set({ recentlyViewed: [] })
-}));
+    { name: "Equipment Store" }
+  )
+);
 
 export default useEquipmentStore;
