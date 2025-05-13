@@ -90,6 +90,19 @@
       "notes": "",
       "createdAt": "2025-05-01T07:14:00.018Z",
       "updatedAt": "2025-05-01T07:14:00.018Z"
+    },
+    {
+      "id": "5d51",
+      "name": "LG 34inch Desktop Monitor",
+      "category": "AV機器・周辺機器",
+      "status": "利用可能",
+      "quantity": 1,
+      "storageLocation": "ダイアンの机",
+      "purchaseDate": "2025-05-04",
+      "borrower": "",
+      "notes": "",
+      "createdAt": "2025-05-13T05:02:03.998Z",
+      "updatedAt": "2025-05-13T05:02:03.998Z"
     }
   ]
 }
