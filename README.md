@@ -692,6 +692,20 @@ const EquipmentForm = () => {
 - [**zustand**](https://github.com/pmndrs/zustand): シンプルで軽量なグローバルステート管理ライブラリ
 - [**zustand/middleware**](https://github.com/pmndrs/zustand#middleware): devtools デバッグ統合のためのミドルウェア
 
+### グローバルステート管理とは
+
+React アプリでは、ユーザー情報やフィルター状態、テーマ（ダーク／ライト）など、複数のコンポーネントで共有したいデータを「グローバルステート」として管理することがあります。これを効率的に扱うための仕組みが「グローバルステート管理」です。
+
+### Redux と Zustand の違い
+
+Redux は昔からあるグローバルステート管理ライブラリで、大規模アプリでも対応できるように設計されています。しかし、使うには「アクション」「リデューサー」「ストア」などの知識が必要で、初心者にとっては少しハードルが高めです。また、コードが冗長になりがちです。
+
+一方、Zustand はとてもシンプルで直感的な書き方ができる軽量なライブラリです。React のフック（useStore）だけで状態の読み取りと更新ができ、学習コストが低く、導入も簡単です。
+
+> Zustand という名前はドイツ語で「状態」を意味します。発音については、ドイツ語風に「ツーシュタント」と読まれることもあれば、英語圏では「ズースタンド」と呼ばれることが多いです。
+>
+> 参照：[【初心者向け】Zustand で React の状態管理を簡単に！使い方を徹底解説！](https://envader.plus/article/524)
+
 以下は、各検証項目ごとの実装内容です。
 
 ### 1. ストアの定義と利用（create, useStore）
@@ -849,8 +863,6 @@ const useFilterStore = create<FilterState>()(/* ... */);
 const useEquipmentStore = create<EquipmentState>()(/* ... */);
 ```
 
-この設計により、各ストアは特定の機能領域に焦点を当て、コードベースの保守性と可読性が向上します。
-
 ---
 
 ### 4. React DevTools との連携とデバッグ
@@ -881,17 +893,13 @@ selectEquipment: (equipment) =>
   set({ selectedEquipment: equipment }, false, "selectEquipment"),
 ```
 
-`set` 関数の第三引数にアクション名を指定することで、DevTools でのアクションの追跡が容易になります。このラベルは、ステート変更の原因を特定する際に役立ちます。
+`set` 関数の第三引数にアクション名を指定することで、DevTools でのアクションの追跡が容易になります。
 
 #### デバッグの利用方法
 
 1. ブラウザに [Redux DevTools 拡張機能](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd) をインストールします
 2. アプリケーションを開発モードで実行します
 3. ブラウザの開発者ツールで Redux タブを開きます
-4. ドロップダウンメニューから目的のストア（"Filter Store" または "Equipment Store"）を選択します
+4. ドロップダウンメニューから目的のストアを選択します
 5. アプリケーションの操作時に発生するステート変更を監視できます
 6. タイムトラベル機能を使用して、過去の状態に戻ることもできます
-
-このデバッグ機能により、複雑なステート変更のトラブルシューティングが容易になり、開発効率が向上します。
-
----
