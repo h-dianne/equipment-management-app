@@ -75,7 +75,7 @@ const HomePage = () => {
             <button
               onClick={() => {
                 clearFilters();
-                navigate("", { replace: true });
+                navigate("/home", { replace: true });
               }}
               className="px-3 py-1 bg-slate-400 text-sm text-gray-900 rounded-md hover:bg-slate-600 hover:text-white transition-colors"
             >
