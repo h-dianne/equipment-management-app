@@ -37,3 +37,22 @@ exports[`DetailItemコンポーネント > スナップショットと一致す�
   </div>
 </DocumentFragment>
 `;
+
+exports[`DetailItemコンポーネント > スナップショットと一致することを確認 1`] = `
+<DocumentFragment>
+  <div
+    class=""
+  >
+    <dt
+      class="text-sm font-medium text-gray-500"
+    >
+      保管場所
+    </dt>
+    <dd
+      class="mt-1 text-sm text-gray-900"
+    >
+      個人デスク
+    </dd>
+  </div>
+</DocumentFragment>
+`;

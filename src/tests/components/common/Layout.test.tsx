@@ -12,8 +12,8 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-describe("Layout component", () => {
-  test("renders navbar with title", () => {
+describe("Layoutコンポーネント", () => {
+  test("ナビゲーションバーが正しくレンダリングされることを確認", () => {
     render(
       <BrowserRouter>
         <Layout />

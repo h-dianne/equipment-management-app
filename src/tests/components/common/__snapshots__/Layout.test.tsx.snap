@@ -53,3 +53,57 @@ exports[`Layout component > スナップショットと一致することを確�
   </div>
 </DocumentFragment>
 `;
+
+exports[`Layoutコンポーネント > スナップショットと一致することを確認 1`] = `
+<DocumentFragment>
+  <div
+    class="min-h-screen flex flex-col bg-gray-50"
+  >
+    <nav
+      class="bg-gray-800 text-white shadow-md"
+    >
+      <div
+        class="container mx-auto px-4 py-3"
+      >
+        <div
+          class="flex justify-between items-center"
+        >
+          <a
+            class="text-xl font-bold"
+            data-discover="true"
+            href="/"
+          >
+            備品管理システム
+          </a>
+          <div
+            class="space-x-4"
+          >
+            <a
+              class="px-4 py-2 text-sm text-gray-900 bg-slate-400
+              hover:bg-slate-600 hover:text-white rounded-md transition-colors"
+              data-discover="true"
+              href="/register"
+            >
+              新規登録
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+    <main
+      class="container mx-auto px-4 py-6 flex-grow"
+    >
+      <div
+        data-testid="outlet-content"
+      >
+        Page Content
+      </div>
+    </main>
+    <footer
+      class="bg-gray-800 text-white p-4 text-right"
+    >
+      © 2025 備品管理システム
+    </footer>
+  </div>
+</DocumentFragment>
+`;
