@@ -1,20 +1,35 @@
-import { useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import EquipmentList from "../components/equipment/EquipmentList";
+import useFilterStore from "../stores/filterStore";
+import { EquipmentCategory, EquipmentStatus } from "../types/equipment";
 
 const HomePage = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const categoryFilter = searchParams.get("category") || "";
-  const statusFilter = searchParams.get("status") || "";
+  const {
+    categoryFilter,
+    statusFilter,
+    setCategoryFilter,
+    setStatusFilter,
+    clearFilters
+  } = useFilterStore();
+
+  const navigate = useNavigate();
+
+  const updateUrl = () => {
+    const params = new URLSearchParams();
+    if (categoryFilter) params.set("category", categoryFilter);
+    if (statusFilter) params.set("status", statusFilter);
+    navigate({ search: params.toString() }, { replace: true });
+  };
 
   // フィルタリング機能
-  const handleFilterChange = (
-    newCategory: string = categoryFilter,
-    newStatus: string = statusFilter
-  ) => {
-    const params = new URLSearchParams();
-    if (newCategory) params.set("category", newCategory);
-    if (newStatus) params.set("status", newStatus);
-    setSearchParams(params);
+  const handleCategoryChange = (category: EquipmentCategory | "") => {
+    setCategoryFilter(category);
+    updateUrl();
+  };
+
+  const handleStatusChange = (status: EquipmentStatus | "") => {
+    setStatusFilter(status);
+    updateUrl();
   };
 
   return (
@@ -26,7 +41,9 @@ const HomePage = () => {
         <div className="mt-4 sm:mt-0 flex flex-wrap gap-3">
           <select
             value={categoryFilter}
-            onChange={(e) => handleFilterChange(e.target.value, statusFilter)}
+            onChange={(e) =>
+              handleCategoryChange(e.target.value as EquipmentCategory | "")
+            }
             className="mx-1 px-2 h-10 rounded-md border-gray-300 shadow-sm text-sm focus:border-slate-500 focus:ring-slate-500"
           >
             <option value="">全てのカテゴリ</option>
@@ -42,7 +59,9 @@ const HomePage = () => {
 
           <select
             value={statusFilter}
-            onChange={(e) => handleFilterChange(categoryFilter, e.target.value)}
+            onChange={(e) =>
+              handleStatusChange(e.target.value as EquipmentStatus | "")
+            }
             className="mx-1 px-2 h-10 rounded-md border-gray-300 shadow-sm text-sm focus:border-slate-500 focus:ring-slate-500"
           >
             <option value="">全てのステータス</option>
@@ -54,7 +73,10 @@ const HomePage = () => {
 
           {(categoryFilter || statusFilter) && (
             <button
-              onClick={() => handleFilterChange("", "")}
+              onClick={() => {
+                clearFilters();
+                navigate("/home", { replace: true });
+              }}
               className="px-3 py-1 bg-slate-400 text-sm text-gray-900 rounded-md hover:bg-slate-600 hover:text-white transition-colors"
             >
               フィルタをクリア
@@ -63,10 +85,7 @@ const HomePage = () => {
         </div>
       </div>
 
-      <EquipmentList
-        categoryFilter={categoryFilter}
-        statusFilter={statusFilter}
-      />
+      <EquipmentList />
     </div>
   );
 };

@@ -5,16 +5,12 @@ import { Link } from "react-router-dom";
 import { formatDate } from "../../utils/dateUtils";
 import { getStatusColor } from "../../utils/statusUtils";
 import toast from "react-hot-toast";
+import useFilterStore from "../../stores/filterStore";
 
-interface EquipmentListProps {
-  categoryFilter?: string;
-  statusFilter?: string;
-}
+const EquipmentList = () => {
+  // Get filters from global store
+  const { categoryFilter, statusFilter } = useFilterStore();
 
-const EquipmentList = ({
-  categoryFilter = "",
-  statusFilter = ""
-}: EquipmentListProps) => {
   const { data, isLoading, isError, error, isSuccess, refetch } =
     useEquipments();
 
@@ -87,7 +83,7 @@ const EquipmentList = ({
     );
   }
 
-  //  備品データが存在する場合
+  // Render equipment list
   return (
     // Global container
     <div className="p-6 max-w-7xl mx-auto">

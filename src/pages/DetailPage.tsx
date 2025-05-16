@@ -3,14 +3,32 @@ import { useEquipmentById } from "../hooks/useEquipment";
 import { formatDate } from "../utils/dateUtils";
 import { getStatusColor } from "../utils/statusUtils";
 import DetailItem from "../components/common/DetailItem";
+import useEquipmentStore from "../stores/equipmentStore";
+import { useEffect } from "react";
 
 const DetailPage = () => {
   // URL から id パラメータを取得
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  // Use global equipment store
+  const { selectEquipment, addToRecentlyViewed } = useEquipmentStore();
+
   // id を使って特定の備品データを取得
   const { data, isLoading, isError, error } = useEquipmentById(id || "");
+
+  // When data is loaded, update global state
+  useEffect(() => {
+    if (data) {
+      selectEquipment(data);
+      addToRecentlyViewed(data.id);
+    }
+
+    // Clear selected equipment when unmounting
+    return () => {
+      selectEquipment(null);
+    };
+  }, [data, selectEquipment, addToRecentlyViewed]);
 
   // ローディング時
   if (isLoading) {
