@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, test, expect } from "vitest";
+import { describe, test as it, expect } from "vitest";
 import { BrowserRouter } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import Navbar from "../../../components/common/Navbar";
@@ -10,26 +10,26 @@ const renderWithRouter = (ui: React.ReactElement) => {
 };
 
 describe("Navbarコンポーネント", () => {
-  test("アプリタイトルが表示されることを確認", () => {
+  it("アプリタイトルが表示されることを確認", () => {
     renderWithRouter(<Navbar />);
 
     // アプリケーションのタイトルが表示されていることを確認
     expect(screen.getByText("備品管理システム")).toBeInTheDocument();
   });
 
-  test("ナビゲーションリンクが正しく表示されることを確認", () => {
+  it("ナビゲーションリンクが正しく表示されることを確認", () => {
     renderWithRouter(<Navbar />);
 
     // 新規登録リンクが存在することを確認
     expect(screen.getByText("新規登録")).toBeInTheDocument();
   });
 
-  test("ナビゲーションリンクをクリックすると正しいパスに遷移することを確認", async () => {
+  it("ナビゲーションリンクをクリックすると正しいパスに遷移することを確認", async () => {
     renderWithRouter(<Navbar />);
     const user = userEvent.setup();
 
     // 新規登録リンクをクリック
-    const registerLink = screen.getByText("新規登録");
+    const registerLink = screen.getByText(/新規登録/i);
     await user.click(registerLink);
 
     // location.pathnameを確認するには、モックまたは実際のルーティングテストが必要
@@ -37,7 +37,7 @@ describe("Navbarコンポーネント", () => {
     expect(registerLink.closest("a")).toHaveAttribute("href", "/register");
   });
 
-  test("スナップショットと一致することを確認", () => {
+  it("スナップショットと一致することを確認", () => {
     const { asFragment } = renderWithRouter(<Navbar />);
 
     // コンポーネントのレンダリングが一貫していることを確認
