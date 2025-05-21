@@ -903,3 +903,206 @@ selectEquipment: (equipment) =>
 4. ドロップダウンメニューから目的のストアを選択します
 5. アプリケーションの操作時に発生するステート変更を監視できます
 6. タイムトラベル機能を使用して、過去の状態に戻ることもできます
+
+---
+
+## Task 5. テストの実行と検証方法の習得
+
+このプロジェクトでは、以下のライブラリを使用してユニットテストとコンポーネントテストを実装しました：
+
+- [**Vitest**](https://vitest.dev/): Vite ベースの高速テストフレームワーク
+- [**React Testing Library**](https://testing-library.com/docs/react-testing-library/intro/): ユーザー視点でのテストを作成するための API
+- [**@testing-library/user-event**](https://testing-library.com/docs/user-event/intro/): ユーザーのインタラクションをシミュレートするツール
+
+以下は、各検証項目ごとの実装内容です。
+
+### テストするポイント
+
+1. **実装ではなく振る舞いをテスト**: 内部実装の詳細ではなく、ユーザーから見える振る舞いをテストします。
+2. **アクセシビリティを考慮**: スクリーンリーダーなどの支援技術が使用する属性（ラベル、ロール）に基づいて要素を検索します。
+3. **最小限のモック**: 可能な限り実際のコンポーネントを使用し、必要な場合のみモックを使用します。
+4. **ユーザー視点のクエリ**: `getByRole`, `getByLabelText`, `getByText` などの「ユーザー視点」のクエリを優先的に使用します。
+5. **スナップショットの適切な利用**: スナップショットは選択的に使用し、意図的な UI 変更を反映するために定期的に更新します。
+
+### テストの実行方法
+
+- プロジェクトのテストは、以下のコマンドを実行：
+
+```bash
+npm run test
+```
+
+- 特定のテストファイルのみを実行する場合は：
+
+```bash
+npm run test filename.test.tsx
+```
+
+- テストカバレッジレポートを生成する場合は：
+
+```bash
+npm run coverage
+```
+
+- テストカバレッジレポートを生成する場合は：
+
+```bash
+npm run test:ui
+```
+
+- スナップショットを更新する場合は（UI の意図的な変更後）：
+
+```bash
+npm run test -- -u
+```
+
+- 特定のテストファイルのスナップショットのみを更新する場合：
+
+```bash
+npm run test filename.test.tsx -- -u
+```
+
+---
+
+### 1. コンポーネントのユニットテストとスナップショットテスト
+
+コンポーネントテストでは、コンポーネントが**正しくレンダリングされ、期待通りに動作する**ことを検証します。
+
+#### 基本的なコンポーネントテスト
+
+```tsx
+// src/tests/components/common/Navbar.test.tsx から抜粋
+import { render, screen } from "@testing-library/react";
+import { describe, test as it, expect } from "vitest";
+import { BrowserRouter } from "react-router-dom";
+import Navbar from "../../../components/common/Navbar";
+
+// BrowserRouterでラップするヘルパー関数
+const renderWithRouter = (ui: React.ReactElement) => {
+  return render(ui, { wrapper: BrowserRouter });
+};
+
+describe("Navbarコンポーネント", () => {
+  it("アプリタイトルが表示されることを確認", () => {
+    renderWithRouter(<Navbar />);
+
+    expect(screen.getByText("備品管理システム")).toBeInTheDocument();
+  });
+
+  it("ナビゲーションリンクが正しく表示されることを確認", () => {
+    renderWithRouter(<Navbar />);
+
+    expect(screen.getByText("新規登録")).toBeInTheDocument();
+  });
+});
+```
+
+このテストでは、以下の基本的な手順に従っています：
+
+1. **コンポーネントのレンダリング**: `render` 関数を使用して、テスト対象のコンポーネントをレンダリングします。
+2. **要素の検証**: `screen.getByText()` などの「クエリ」を使用して、特定のテキストや要素がドキュメントに存在することを確認します。
+3. **アサーション**: `expect()` と `toBeInTheDocument()` などのマッチャーを使用して、期待される結果と実際の結果を比較します。
+
+ルーター依存のコンポーネントをテストするために、`renderWithRouter` ヘルパー関数を使用して、`BrowserRouter` コンテキストでコンポーネントをラップしています。
+
+#### スナップショットテスト
+
+```tsx
+// src/tests/components/common/Navbar.test.tsx から抜粋
+it("スナップショットと一致することを確認", () => {
+  const { asFragment } = renderWithRouter(<Navbar />);
+
+  // コンポーネントのレンダリングが一貫していることを確認
+  expect(asFragment()).toMatchSnapshot();
+});
+```
+
+スナップショットテストは、コンポーネントのレンダリング出力を「スナップショット」として保存し、将来のテスト実行時に変更がないかを検証します。
+これにより、意図しない UI の変更を検出できます。
+
+初回実行時には、レンダリング結果が `__snapshots__` ディレクトリに保存されます。
+その後のテスト実行では、現在のレンダリング結果と保存されたスナップショットを比較します。
+
+### 例（Navbar.test.tsx.snap）
+
+```tsx
+// src/tests/components/common/__snapshots__/Navbar.test.tsx.snap から抜粋
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Navbarコンポーネント > スナップショットと一致することを確認 1`] = `
+<DocumentFragment>
+  <nav
+    class="bg-gray-800 text-white shadow-md"
+  >
+    <div
+      class="container mx-auto px-4 py-3"
+    >
+      <div
+        class="flex justify-between items-center"
+      >
+        <a
+          class="text-xl font-bold"
+          data-discover="true"
+          href="/"
+        >
+          備品管理システム
+        </a>
+        <div
+          class="space-x-4"
+        >
+          <a
+            class="px-4 py-2 text-sm text-gray-900 bg-slate-400
+              hover:bg-slate-600 hover:text-white rounded-md transition-colors"
+            data-discover="true"
+            href="/register"
+          >
+            新規登録
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+</DocumentFragment>
+`;
+```
+
+### 2. ユーザーイベント（クリック、入力、送信など）のテスト
+
+ユーザーによるインタラクション（クリック、入力など）をシミュレートして、コンポーネントが正しく応答することを検証します。
+
+#### クリックイベントのテスト
+
+```tsx
+// src/tests/components/common/Navbar.test.tsx から抜粋
+import userEvent from "@testing-library/user-event";
+
+it("ナビゲーションリンクをクリックすると正しいパスに遷移することを確認", async () => {
+  renderWithRouter(<Navbar />);
+  const user = userEvent.setup();
+
+  // 正規表現を使用して大文字小文字を区別せずに検索。
+  // テキストの一部が変わっても検出できるため柔軟性が高い
+  const registerLink = screen.getByText(/新規登録/i);
+  await user.click(registerLink);
+
+  // リンクのhref属性を確認
+  expect(registerLink.closest("a")).toHaveAttribute("href", "/register");
+});
+```
+
+この例では、以下の手順でユーザーインタラクションをテストしています：
+
+1. **ユーザーイベントのセットアップ**: `userEvent.setup()` を使用して、ユーザーイベントをシミュレートするための環境を準備します。
+2. **要素の取得**: `screen.getByText()` を使用して、クリック対象の要素を取得します。
+3. **イベントのシミュレーション**: `user.click()` を使用して、ユーザーがリンクをクリックする動作をシミュレートします。
+4. **結果の検証**: クリック後の状態や振る舞いを検証します。この例では、リンクの `href` 属性が期待値と一致することを確認しています。
+
+`userEvent` ライブラリは、実際のユーザーの行動に近い形でイベントをシミュレートします。
+
+### 3. フォームの入力とバリデーションエラーのテスト
+
+検証中...
+
+### 4. API 呼び出しを含む非同期処理のテスト（waitFor, mock）
+
+検証中...
