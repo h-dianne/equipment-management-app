@@ -29,7 +29,7 @@ describe("Navbarコンポーネント", () => {
     const user = userEvent.setup();
 
     // 新規登録リンクをクリック
-    const registerLink = screen.getByText(/新規登録/i);
+    const registerLink = screen.getByText(/新規登録/);
     await user.click(registerLink);
 
     // location.pathnameを確認するには、モックまたは実際のルーティングテストが必要
