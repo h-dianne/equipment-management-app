@@ -74,7 +74,7 @@ const EquipmentForm = () => {
     mutate(data, {
       onSuccess: () => {
         reset(); // フォームをリセット
-        navigate('/'); // ホームページにリダイレクト
+        navigate("/"); // ホームページにリダイレクト
       }
     });
   };
