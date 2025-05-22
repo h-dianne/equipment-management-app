@@ -64,12 +64,19 @@
       - [アクション名のラベル付け](#アクション名のラベル付け)
       - [デバッグの利用方法](#デバッグの利用方法)
   - [Task 5. テストの実行と検証方法の習得](#task-5-テストの実行と検証方法の習得)
+    - [テストのセットアップ方法](#テストのセットアップ方法)
+      - [src/tests/setup.ts について](#srctestssetupts-について)
+      - [vitest.config.ts について](#vitestconfigts-について)
+    - [便利な拡張機能とショートカット](#便利な拡張機能とショートカット)
+      - [VS Code 拡張機能](#vs-code-拡張機能)
+      - [よく使うスニペットショートカット](#よく使うスニペットショートカット)
+      - [便利なマッチャー一覧](#便利なマッチャー一覧)
     - [テストするポイント](#テストするポイント)
     - [テストの実行方法](#テストの実行方法)
     - [1. コンポーネントのユニットテストとスナップショットテスト](#1-コンポーネントのユニットテストとスナップショットテスト)
       - [基本的なコンポーネントテスト](#基本的なコンポーネントテスト)
       - [スナップショットテスト](#スナップショットテスト)
-    - [例（Navbar.test.tsx.snap）](#例navbartesttsxsnap)
+      - [例（Navbar.test.tsx.snap）](#例navbartesttsxsnap)
     - [2. ユーザーイベント（クリック、入力、送信など）のテスト](#2-ユーザーイベントクリック入力送信などのテスト)
       - [クリックイベントのテスト](#クリックイベントのテスト)
     - [3. フォームの入力とバリデーションエラーのテスト](#3-フォームの入力とバリデーションエラーのテスト)
@@ -991,6 +998,117 @@ selectEquipment: (equipment) =>
 
 以下は、各検証項目ごとの実装内容です。
 
+### テストのセットアップ方法
+
+プロジェクトでは、Vitest と React Testing Library を使用してテストを実施するための環境が整えられています。これらのテストフレームワークは、高速かつ効率的にフロントエンドアプリケーションをテストできるように設計されています。
+
+#### src/tests/setup.ts について
+
+`src/tests/setup.ts` ファイルはテスト環境の基本設定を行うファイルで、すべてのテスト実行前に自動的に読み込まれます：
+
+```tsx
+// src/tests/setup.ts
+import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
+import { afterEach } from "vitest";
+
+afterEach(() => {
+  cleanup();
+});
+```
+
+このファイルは以下の重要な役割を果たします：
+
+1. **React Testing Library の拡張機能の読み込み**：
+
+   - `@testing-library/jest-dom/vitest`をインポートすることで、`toBeInTheDocument()`や`toHaveTextContent()`などの便利なマッチャーをテストで使用できるようになります。
+   - これらのマッチャーは、DOM 要素の存在や内容を検証する際に非常に直感的な API を提供します。
+
+2. **テスト後のクリーンアップ**：
+   - 各テストの実行後に`cleanup()`を実行することで、テスト間で DOM がリセットされ、テスト間の干渉を防ぎます。
+   - これにより、各テストが独立して実行され、前のテストの状態に影響されないことが保証されます。
+
+#### vitest.config.ts について
+
+Vitest の設定ファイル（`vitest.config.ts`）はテスト環境の詳細な設定を行います：
+
+```tsx
+// vitest.config.ts
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    environment: "happy-dom", // テスト実行環境としてhappy-domを使用
+    globals: true, // グローバル関数（describe, it, expect）を自動インポート
+    setupFiles: "src/tests/setup.ts", // セットアップファイルのパス
+    coverage: {
+      reporter: ["text", "json", "html"] // カバレッジレポートの形式
+    }
+  }
+});
+```
+
+各設定の詳細説明：
+
+1. **`environment: "happy-dom"`**：
+
+   - ブラウザ環境をシミュレートするための JSDOM 代替として軽量な happy-dom を使用します。
+   - happy-dom は JSDOM より高速で、メモリ効率が良く、Vitest との相性も優れています。
+   - これにより、DOM を操作するテストが Node.js 環境でも高速に実行できます。
+
+2. **`globals: true`**：
+
+   - `describe`、`it`、`expect`などのテスト関数をファイル内で明示的にインポートせずに使えるようにします。
+   - これにより、テストコードがよりクリーンになり、可読性が向上します。
+
+3. **`setupFiles: "src/tests/setup.ts"`**：
+
+   - 上記のセットアップファイルをすべてのテスト実行前に読み込みます。
+   - 共通の設定や準備作業をすべてのテスト間で共有するために使用します。
+
+4. **`coverage`**：
+   - テストカバレッジを出力する形式を指定しています。
+   - `text`：コンソールにテキスト形式で表示（即時確認に便利）
+   - `json`：JSON 形式でファイル出力（CI/CD システムやその他のツールとの連携に便利）
+   - `html`：HTML レポートを生成（視覚的に確認しやすい形式で、カバレッジの詳細な分析に最適）
+
+### 便利な拡張機能とショートカット
+
+#### VS Code 拡張機能
+
+| 拡張機能名                   | 説明                                 |
+| ---------------------------- | ------------------------------------ |
+| **Vitest** (公式)            | テスト実行とデバッグのための統合機能 |
+| **Vitest Snippets**          | Vitest の便利なコードスニペット      |
+| **Testing Library Snippets** | React Testing Library のスニペット集 |
+
+#### よく使うスニペットショートカット
+
+| ショートカット | 展開されるコード                                          | 用途                             |
+| -------------- | --------------------------------------------------------- | -------------------------------- |
+| `desc→`        | `describe('name', () => { ... })`                         | テストグループを定義             |
+| `test→`        | `test('should ...', () => { ... })`                       | テストケースを定義               |
+| `itr→`         | `import { render, screen } from '@testing-library/react'` | Testing Library の基本インポート |
+| `itrh→`        | `import { renderHook } from '@testing-library/react'`     | フックテスト用インポート         |
+| `itue→`        | `import userEvent from '@testing-library/user-event'`     | ユーザーイベント用インポート     |
+| `ait→`         | `await waitFor(() => { expect(...) })`                    | 非同期テスト用ヘルパー           |
+
+詳細は[Testing Library Snippets のチートシート](https://marketplace.visualstudio.com/items?itemName=deinsoftware.testing-library-snippets#cheat-sheet)を参照してください。
+
+#### 便利なマッチャー一覧
+
+| マッチャー            | 説明                         | 使用例                                          |
+| --------------------- | ---------------------------- | ----------------------------------------------- |
+| `toBeInTheDocument()` | 要素が DOM に存在するか確認  | `expect(element).toBeInTheDocument()`           |
+| `toHaveTextContent()` | テキスト内容を確認           | `expect(element).toHaveTextContent('テキスト')` |
+| `toBeDisabled()`      | 要素が無効化されているか確認 | `expect(button).toBeDisabled()`                 |
+| `toHaveValue()`       | フォーム要素の値を確認       | `expect(input).toHaveValue('テキスト')`         |
+| `toHaveAttribute()`   | HTML 属性を確認              | `expect(link).toHaveAttribute('href', '/home')` |
+| `toBeVisible()`       | 要素が表示されているか確認   | `expect(element).toBeVisible()`                 |
+| `toBeChecked()`       | チェックボックスの状態を確認 | `expect(checkbox).toBeChecked()`                |
+
+詳細は[React Testing Library のチートシート](https://testing-library.com/docs/react-testing-library/cheatsheet/)を参照してください。
+
 ### テストするポイント
 
 1. **実装ではなく振る舞いをテスト**: 内部実装の詳細ではなく、ユーザーから見える振る舞いをテストします。
@@ -1157,7 +1275,7 @@ it("ナビゲーションリンクをクリックすると正しいパスに遷�
 
   // 正規表現を使用して大文字小文字を区別せずに検索。
   // テキストの一部が変わっても検出できるため柔軟性が高い
-  const registerLink = screen.getByText(/新規登録/i);
+  const registerLink = screen.getByText(/新規登録/);
   await user.click(registerLink);
 
   // リンクのhref属性を確認
@@ -1176,8 +1294,130 @@ it("ナビゲーションリンクをクリックすると正しいパスに遷�
 
 ### 3. フォームの入力とバリデーションエラーのテスト
 
-検証中...
+フォームコンポーネントのテストでは、ユーザーによる入力操作とバリデーションの動作を検証します。
+
+```tsx
+// src/tests/components/equipment/EquipmentForm.test.tsx から抜粋
+it("必須フィールドが空の場合にバリデーションエラーが表示されることを確認", async () => {
+  // 準備
+  const user = userEvent.setup();
+  renderWithRouter(<EquipmentForm />);
+  const submitButton = screen.getByRole("button", { name: /登録/ });
+
+  // 実行 - すべてのフィールドをクリアして送信
+  const nameInput = screen.getByLabelText(/備品名/);
+  await user.clear(nameInput);
+
+  const categorySelect = screen.getByLabelText(/カテゴリ/);
+  await user.selectOptions(categorySelect, "");
+
+  const locationInput = screen.getByLabelText(/保管場所/);
+  await user.clear(locationInput);
+
+  const purchaseDateInput = screen.getByLabelText(/購入日/);
+  await user.clear(purchaseDateInput);
+
+  await user.click(submitButton);
+
+  // 検証 - エラーメッセージが表示されることを確認
+  await waitFor(() => {
+    expect(screen.getByText(/備品名は必須です/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/有効なカテゴリを選択してください/)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/保管場所は必須です/)).toBeInTheDocument();
+  });
+});
+```
+
+フォームの入力とバリデーションエラーのテストでは、以下の手法を使用しています：
+
+1. **実際のフォーム要素の操作**: `getByLabelText`を使用してアクセシビリティを考慮した要素の取得
+2. **ユーザー操作のシミュレーション**: `user.clear`, `user.selectOptions`, `user.type`などを使用
+3. **バリデーションの発火**: フォーム送信ボタンのクリックによるバリデーション実行
+4. **非同期検証**: `waitFor`を使用してエラーメッセージが表示されるのを待機
+5. **フィールド単位のエラー検証**: 特定のバリデーションエラーメッセージが DOM に表示されることを確認
+
+実装例としては、以下のようなテストケースもあります：
+
+```tsx
+it("在庫数に無効な値を入力した場合にバリデーションエラーが表示されることを確認", async () => {
+  const user = userEvent.setup();
+  renderWithRouter(<EquipmentForm />);
+
+  const quantityInput = screen.getByLabelText(/在庫数/);
+
+  // 実行 - 無効な値（0）を入力
+  await user.clear(quantityInput);
+  await user.type(quantityInput, "0");
+
+  // フォーカスを外してバリデーションを発火
+  await user.tab();
+
+  // 検証
+  await waitFor(() => {
+    expect(screen.getByText("最低1つ以上必要です")).toBeInTheDocument();
+  });
+});
+```
+
+これらのテストは、実際のユーザーの操作に近い形でフォームのバリデーション機能を検証し、アプリケーションの堅牢性 (robustness) を確保します。
 
 ### 4. API 呼び出しを含む非同期処理のテスト（waitFor, mock）
 
-検証中...
+API 呼び出しなどの非同期処理をテストする場合は、実際の API を呼び出すのではなく、`mock` 関数を使用します。これにより、テストの実行速度を向上させ、テストの安定性を確保できます。
+
+```tsx
+// src/tests/hooks/useEquipment.test.tsx から抜粋
+vi.mock("../../api/equipmentApi", () => ({
+  fetchEquipments: vi.fn(),
+  fetchEquipmentById: vi.fn()
+}));
+
+describe("useEquipments", () => {
+  it("データ取得に成功した場合、正しいデータが返されることを確認", async () => {
+    // APIモックの設定
+    const mockData = [
+      {
+        id: "1",
+        name: "テスト備品",
+        category: "電子機器",
+        status: "利用可能",
+        quantity: 1,
+        storageLocation: "テスト保管場所",
+        purchaseDate: "2023-01-01",
+        createdAt: "2023-01-01T00:00:00Z",
+        updatedAt: "2023-01-01T00:00:00Z"
+      }
+    ];
+    fetchEquipments.mockResolvedValue(mockData);
+
+    // フックのレンダリング
+    const { result } = renderHook(() => useEquipments(), {
+      wrapper: createWrapper()
+    });
+
+    // ローディング状態の確認
+    expect(result.current.isLoading).toBe(true);
+
+    // データ取得完了を待機
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    // 取得データの検証
+    expect(result.current.data).toEqual(mockData);
+  });
+});
+```
+
+API 呼び出しを含む非同期処理のテストでは、以下の手法を実装しています：
+
+1. **API レイヤーのモック**: `vi.mock`を使用して API 関数をモック化
+2. **モックレスポンスの設定**: 成功ケースと失敗ケースの両方をテスト
+3. **非同期フックのテスト**: `renderHook`を使用してカスタムフックをレンダリング
+4. **非同期状態の検証**: `waitFor`を使用してデータ取得の完了を待機
+5. **状態遷移の確認**: `isLoading`, `isError`, `isSuccess`などの状態フラグを検証
+6. **取得データの検証**: モックデータと実際に返されたデータの一致を確認
+
+このテストアプローチにより、外部依存性を持つコンポーネントやフックを、実際の API を呼び出すことなく効率的にテストできます。また、ローディング状態やエラー状態など、さまざまな状況でのアプリケーションの振る舞いを確認できます。
