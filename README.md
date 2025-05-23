@@ -9,6 +9,8 @@
   - [3. Task 1. Web API の適切な呼び出しと実装方法の習得](#3-task-1-web-api-の適切な呼び出しと実装方法の習得)
     - [3-1. Task 1-1. API リクエストとキャッシュの基本実装](#3-1-task-1-1-api-リクエストとキャッシュの基本実装)
       - [axios を使った API リクエストの送信とデータキャッシュの実装](#axios-を使った-api-リクエストの送信とデータキャッシュの実装)
+        - [axios インスタンスの設定](#axios-インスタンスの設定)
+        - [API 関数の実装](#api-関数の実装)
     - [3-2. Task 1-2. クエリキーの設計とキャッシュ管理](#3-2-task-1-2-クエリキーの設計とキャッシュ管理)
       - [クエリキーの命名規則と設計指針](#クエリキーの命名規則と設計指針)
       - [キャッシュの有効期限設定](#キャッシュの有効期限設定)
@@ -76,7 +78,7 @@
     - [7-5. Task 5-1. コンポーネントのユニットテストとスナップショットテスト](#7-5-task-5-1-コンポーネントのユニットテストとスナップショットテスト)
       - [基本的なコンポーネントテスト](#基本的なコンポーネントテスト)
       - [スナップショットテスト](#スナップショットテスト)
-      - [例（Navbar.test.tsx.snap）](#例navbartesttsxsnap)
+    - [例（Navbar.test.tsx.snap）](#例navbartesttsxsnap)
     - [7-6. Task 5-2. ユーザーイベント（クリック、入力、送信など）のテスト](#7-6-task-5-2-ユーザーイベントクリック入力送信などのテスト)
       - [クリックイベントのテスト](#クリックイベントのテスト)
     - [7-7. Task 5-3. フォームの入力とバリデーションエラーのテスト](#7-7-task-5-3-フォームの入力とバリデーションエラーのテスト)
@@ -122,18 +124,88 @@ npm run dev:all
 
 #### axios を使った API リクエストの送信とデータキャッシュの実装
 
+##### axios インスタンスの設定
+
+まず、一貫した API 通信のために設定済みの axios インスタンスを作成しています：
+
 ```typescript
-// src/api/equipment.ts から抜粋
-export const fetchEquipment = async (): Promise<Equipment[]> => {
-  try {
-    // サーバーから何が返ってくるかわからないため、一旦 unknown として受け取る
-    const response = await axios.get<unknown>(`${API_BASE_URL}/api/equipments`);
-    // 実行時に zod を使って正しいデータ構造かを検証する
-    return EquipmentsSchema.parse(response.data);
-  } catch () {
-    toast.error("備品データの取得に失敗しました");
-    throw new Error("Failed to fetch equipment data");
+// src/api/client.ts
+import axios, { AxiosError } from "axios";
+import toast from "react-hot-toast";
+
+// APIのベースURL
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+
+// デフォルト設定でaxiosインスタンスを作成
+export const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000, // 10秒のタイムアウト
+  headers: {
+    "Content-Type": "application/json"
   }
+});
+
+// リクエストインターセプター - 全てのリクエスト前に実行
+apiClient.interceptors.request.use(
+  (config) => {
+    console.log(
+      `Making ${config.method?.toUpperCase()} request to ${config.url}`
+    );
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// レスポンスインターセプター - 全てのレスポンス後に実行
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    // 一般的なエラーシナリオを処理
+    if (error.response) {
+      const status = error.response.status;
+      switch (status) {
+        case 400:
+          toast.error("無効なリクエストです");
+          break;
+        case 401:
+          toast.error("認証が必要です");
+          break;
+        case 403:
+          toast.error("アクセス権限がありません");
+          break;
+        case 404:
+          toast.error("データが見つかりません");
+          break;
+        case 500:
+          toast.error("サーバーエラーが発生しました");
+          break;
+        default:
+          toast.error("エラーが発生しました");
+      }
+    } else if (error.request) {
+      toast.error("サーバーに接続できません");
+    } else {
+      toast.error("予期しないエラーが発生しました");
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+##### API 関数の実装
+
+設定済みの axios インスタンスを使用して API 関数を実装しています：
+
+```typescript
+// src/api/equipmentApi.ts から抜粋
+import { apiClient } from "./client";
+
+export const fetchEquipment = async (): Promise<Equipment[]> => {
+  // 設定済みのapiClientを使用
+  const { data } = await apiClient.get<Equipment[]>("/equipments");
+  // 実行時に zod を使って正しいデータ構造かを検証する
+  return EquipmentsSchema.parse(data);
 };
 
 // src/hooks/useEquipment.ts から抜粋
@@ -145,7 +217,12 @@ export const useEquipments = () => {
 };
 ```
 
-> TypeScript の型は開発時のヒントにすぎないため、実行時には unknown として受け取り、zod で検証することで不正なレスポンスによるクラッシュを防ぎます。
+> **axios インスタンスの利点:**
+>
+> - **統一された設定**: ベース URL、タイムアウト、ヘッダーなどを一箇所で管理
+> - **インターセプター**: リクエスト/レスポンスの前後で共通処理を実行
+> - **エラーハンドリング**: 一貫したエラー処理とユーザー通知
+> - **認証機能**: 将来的な認証トークンの追加が容易
 
 axios を使用して API リクエストを送信し、React Query の`useQuery`フックを使用してデータのキャッシングを実装しています。これにより、同じデータに対する複数のリクエストが最適化され、不要なネットワーク通信を削減できます。
 
