@@ -10,6 +10,10 @@ interface FilterState {
   // Actions
   setCategoryFilter: (category: EquipmentCategory | "") => void;
   setStatusFilter: (status: EquipmentStatus | "") => void;
+  setFiltersFromUrl: (
+    category: EquipmentCategory | "",
+    status: EquipmentStatus | ""
+  ) => void;
   clearFilters: () => void;
 }
 
@@ -26,6 +30,12 @@ const useFilterStore = create<FilterState>()(
         set({ categoryFilter: category }, false, "setCategoryFilter"),
       setStatusFilter: (status) =>
         set({ statusFilter: status }, false, "setStatusFilter"),
+      setFiltersFromUrl: (category, status) =>
+        set(
+          { categoryFilter: category, statusFilter: status },
+          false,
+          "setFiltersFromUrl"
+        ),
       clearFilters: () =>
         set({ categoryFilter: "", statusFilter: "" }, false, "clearFilters")
     }),
