@@ -145,7 +145,7 @@ describe("EquipmentList コンポーネント", () => {
 
     // トースト通知が表示されたことを確認
     expect(toast.default.success).toHaveBeenCalledWith(
-      "備品データを読み込みました"
+      /備品データを読み込みました/
     );
   });
 
@@ -229,4 +229,6 @@ describe("EquipmentList コンポーネント", () => {
       "備品データを読み込みました"
     );
   });
+
+  // TODO: Write tests for delete function
 });

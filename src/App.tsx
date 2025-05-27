@@ -1,10 +1,13 @@
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+
 import Layout from "./components/common/Layout";
 import HomePage from "./pages/Homepage";
 import RegisterPage from "./pages/RegisterPage";
 import DetailPage from "./pages/DetailPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
+// TODO: Add function to update
 function App() {
   return (
     <BrowserRouter>
@@ -28,6 +31,7 @@ function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
+      <Toaster position="top-center" />
     </BrowserRouter>
   );
 }
