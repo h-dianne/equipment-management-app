@@ -5,17 +5,20 @@
  * URLパラメータとZustandストアの間でフィルタ状態を同期させ、
  * ページの更新やナビゲーション間でフィルタが保持されるようにする。
  */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import EquipmentList from "../components/equipment/EquipmentList";
 import useFilterStore from "../stores/filterStore";
 import { EquipmentCategory, EquipmentStatus } from "../types/equipment";
+import LoadingSpinner from "../components/common/LoadingSpinner";
 
 const HomePage = () => {
   // ナビゲーションとURLクエリパラメータ管理のためのReact Routerフック
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const [isFiltering, setIsFiltering] = useState(false);
 
   // グローバルストアからフィルタ状態とアクションを取得
   const {
@@ -49,8 +52,10 @@ const HomePage = () => {
    * ストア状態とURLパラメータの両方を更新
    */
   const handleCategoryChange = (category: EquipmentCategory | "") => {
+    setIsFiltering(true);
     setCategoryFilter(category);
     updateSearchParams("category", category);
+    setTimeout(() => setIsFiltering(false), 300);
   };
 
   /**
@@ -58,8 +63,10 @@ const HomePage = () => {
    * ストア状態とURLパラメータの両方を更新
    */
   const handleStatusChange = (status: EquipmentStatus | "") => {
+    setIsFiltering(true);
     setStatusFilter(status);
     updateSearchParams("status", status);
+    setTimeout(() => setIsFiltering(false), 300);
   };
 
   /**
@@ -84,8 +91,10 @@ const HomePage = () => {
    * ストア状態をリセットし、クリーンなURLに移動
    */
   const handleClearFilters = () => {
+    setIsFiltering(true);
     clearFilters();
     navigate("/home", { replace: true });
+    setTimeout(() => setIsFiltering(false), 300);
   };
 
   return (
@@ -121,6 +130,7 @@ const HomePage = () => {
               handleStatusChange(e.target.value as EquipmentStatus | "")
             }
             className="mx-1 px-2 h-10 rounded-md border-gray-300 shadow-sm text-sm focus:border-slate-500 focus:ring-slate-500"
+            disabled={isFiltering}
           >
             <option value="">全てのステータス</option>
             <option value="使用中">使用中</option>
@@ -128,6 +138,12 @@ const HomePage = () => {
             <option value="利用可能">利用可能</option>
             <option value="廃棄">廃棄</option>
           </select>
+
+          {isFiltering && (
+            <div className="inline-block">
+              <LoadingSpinner type="beat" size="sm" />
+            </div>
+          )}
 
           {/* フィルタをクリアするボタン - フィルタが有効な場合のみ表示 */}
           {(categoryFilter || statusFilter) && (
