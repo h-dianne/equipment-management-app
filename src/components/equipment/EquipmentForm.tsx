@@ -1,16 +1,23 @@
+/**
+ * 備品登録フォームコンポーネント
+ * このコンポーネントは新しい備品を登録するためのフォームを提供し、バリデーション機能を含みます
+ */
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate } from "react-router-dom";
+
 import { useCreateEquipment } from "../../hooks/useEquipment";
 import { EquipmentStatus, EquipmentCategory } from "../../types/equipment";
+import LoadingButton from "../common/LoadingButton";
 
 // カテゴリの定義 - 型定義から配列を作成
 const EQUIPMENT_CATEGORIES: readonly EquipmentCategory[] = [
+  "AV機器・周辺機器",
   "電子機器",
   "オフィス家具",
   "工具・作業用品",
-  "AV機器・周辺機器",
   "消耗品",
   "防災・安全用品",
   "レンタル備品",
@@ -18,13 +25,13 @@ const EQUIPMENT_CATEGORIES: readonly EquipmentCategory[] = [
 ];
 // ステータスの定義 - 型定義から配列を作成
 const STATUS: readonly EquipmentStatus[] = [
+  "利用可能",
   "使用中",
   "貸出中",
-  "利用可能",
   "廃棄"
 ];
 
-// フォームの入力検証
+// フォームの入力検証スキーマ
 const equipmentFormSchema = z.object({
   name: z.string().min(1, "備品名は必須です"),
   category: z.custom<EquipmentCategory>(
@@ -48,20 +55,26 @@ const equipmentFormSchema = z.object({
   notes: z.string().optional()
 });
 
+// フォームのデータ型定義（Zodスキーマから型を生成）
 type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
 
 const EquipmentForm = () => {
+  // フォーム送信後の画面遷移用
   const navigate = useNavigate();
+
+  // 備品作成用カスタムフック（React Query使用）
+  // isPendingはAPI通信中かどうかを示す
   const { mutate, isPending } = useCreateEquipment();
 
+  // react-hook-formでフォームを初期化
   const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors }
+    register, // 入力フィールドを登録する関数
+    handleSubmit, // フォーム送信を処理する関数
+    reset, // フォームの値をリセットする関数
+    formState: { errors } // フォームのバリデーションエラー
   } = useForm<EquipmentFormData>({
-    resolver: zodResolver(equipmentFormSchema),
-    mode: "onBlur",
+    resolver: zodResolver(equipmentFormSchema), // Zodスキーマをバリデーション用に接続
+    mode: "onBlur", // フォーカスを失った時にバリデーション
     defaultValues: {
       category: "AV機器・周辺機器",
       status: "利用可能",
@@ -70,17 +83,22 @@ const EquipmentForm = () => {
     }
   });
 
+  /**
+   * フォーム送信ハンドラ
+   * データをAPIに送信し、成功シナリオを処理する
+   */
   const onSubmit = (data: EquipmentFormData) => {
     mutate(data, {
       onSuccess: () => {
-        reset(); // フォームをリセット
-        navigate("/"); // ホームページにリダイレクト
+        reset();
+        navigate("/");
       }
     });
   };
 
   return (
     <div className="mt-10 bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+      {/* フォームヘッダー */}
       <div className="bg-gradient-to-r from-gray-600 to-gray-500 py-4 px-6">
         <h2 className="text-xl font-bold text-white flex items-center">
           備品登録
@@ -371,47 +389,20 @@ const EquipmentForm = () => {
             text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400
             transition duration-200"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 mr-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
             クリア
           </button>
 
           {/* 送信ボタン */}
-          <button
+          <LoadingButton
             type="submit"
+            isLoading={isPending}
+            loadingText="登録中..."
             disabled={isPending}
-            className="flex items-center px-4 py-2 border border-transparent shadow-sm text-base font-medium rounded-md
-            text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500
-            disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+            variant="primary"
+            className="flex items-center"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 mr-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-            {isPending ? "登録中..." : "登録"}
-          </button>
+            登録
+          </LoadingButton>
         </div>
       </form>
     </div>
