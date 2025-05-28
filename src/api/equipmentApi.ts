@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { Equipment } from "../types/equipment";
 import { apiClient } from "./client";
 
 export const EquipmentSchema = z.object({
@@ -26,7 +25,12 @@ export const EquipmentSchema = z.object({
 });
 
 export const EquipmentsSchema = z.array(EquipmentSchema);
-export type Equipments = Equipment[];
+
+// スキーマから型を導出
+export type Equipment = z.infer<typeof EquipmentSchema>;
+export type Equipments = z.infer<typeof EquipmentsSchema>;
+export type EquipmentCategory = Equipment["category"];
+export type EquipmentStatus = Equipment["status"];
 
 // 備品情報を取得する関数
 export const fetchEquipment = async (): Promise<Equipment[]> => {

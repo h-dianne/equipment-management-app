@@ -9,54 +9,22 @@ import { z } from "zod";
 import { useNavigate } from "react-router-dom";
 
 import { useCreateEquipment } from "../../hooks/useEquipment";
-import { EquipmentStatus, EquipmentCategory } from "../../types/equipment";
+import { EquipmentSchema } from "../../api/equipmentApi";
 import LoadingButton from "../common/LoadingButton";
 
-// カテゴリの定義 - 型定義から配列を作成
-const EQUIPMENT_CATEGORIES: readonly EquipmentCategory[] = [
-  "AV機器・周辺機器",
-  "電子機器",
-  "オフィス家具",
-  "工具・作業用品",
-  "消耗品",
-  "防災・安全用品",
-  "レンタル備品",
-  "社用車関連品"
-];
-// ステータスの定義 - 型定義から配列を作成
-const STATUS: readonly EquipmentStatus[] = [
-  "利用可能",
-  "使用中",
-  "貸出中",
-  "廃棄"
-];
-
-// フォームの入力検証スキーマ
-const equipmentFormSchema = z.object({
-  name: z.string().min(1, "備品名は必須です"),
-  category: z.custom<EquipmentCategory>(
-    (val) => EQUIPMENT_CATEGORIES.includes(val as EquipmentCategory),
-    {
-      message: "有効なカテゴリを選択してください"
-    }
-  ),
-  status: z.custom<EquipmentStatus>(
-    (val) => STATUS.includes(val as EquipmentStatus),
-    {
-      message: "有効なステータスを選択してください"
-    }
-  ),
-  quantity: z
-    .number({ invalid_type_error: "数値を入力してください" })
-    .min(1, "最低1つ以上必要です"),
-  storageLocation: z.string().min(1, "保管場所は必須です"),
-  purchaseDate: z.string().min(1, "購入日は必須です"),
-  borrower: z.string().optional(),
-  notes: z.string().optional()
+// APIスキーマから必要な部分を抽出してフォーム用スキーマを作成
+const equipmentFormSchema = EquipmentSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
 });
 
 // フォームのデータ型定義（Zodスキーマから型を生成）
 type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
+
+// カテゴリとステータスの配列もスキーマから導出
+const EQUIPMENT_CATEGORIES = EquipmentSchema.shape.category.options;
+const STATUS = EquipmentSchema.shape.status.options;
 
 const EquipmentForm = () => {
   // フォーム送信後の画面遷移用
