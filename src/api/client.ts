@@ -5,6 +5,13 @@ import toast from "react-hot-toast";
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
+// カスタムエラー型の定義
+type ApiErrorResponse = {
+  message?: string;
+  error?: string;
+  statusCode?: number;
+};
+
 // デフォルト設定でaxiosインスタンスを作成
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -36,18 +43,23 @@ apiClient.interceptors.request.use(
 // レスポンスインターセプター - 全てのレスポンス後に実行
 apiClient.interceptors.response.use(
   (response) => {
+    // 成功レスポンスをそのまま返す
+    // 注意: ここでバリデーションを行わない理由は、
+    // 各API関数で適切なスキーマバリデーションを行うため
     return response;
   },
-  (error: AxiosError) => {
+  (error: AxiosError<ApiErrorResponse>) => {
     // 一般的なエラーシナリオを処理
     if (error.response) {
       // サーバーがエラーステータスで応答した場合
       const status = error.response.status;
-      const message = error.response.data || "An error occurred";
+      const errorData = error.response.data;
+      const message =
+        errorData?.message || errorData?.error || "エラーが発生しました";
 
       switch (status) {
         case 400:
-          toast.error("無効なリクエストです");
+          toast.error(`無効なリクエストです: ${message}`);
           break;
         case 401:
           toast.error("認証が必要です");
@@ -59,18 +71,27 @@ apiClient.interceptors.response.use(
         case 404:
           toast.error("データが見つかりません");
           break;
+        case 422:
+          // バリデーションエラー
+          toast.error(`入力内容に誤りがあります: ${message}`);
+          break;
         case 500:
           toast.error("サーバーエラーが発生しました");
+          break;
+        case 503:
+          toast.error("サービスが一時的に利用できません");
           break;
         default:
           toast.error(`エラーが発生しました: ${message}`);
       }
     } else if (error.request) {
       // リクエストは送信されたが、レスポンスが受信されなかった場合
-      toast.error("サーバーに接続できません");
+      toast.error(
+        "サーバーに接続できません。ネットワーク接続を確認してください。"
+      );
     } else {
       // その他のエラーが発生した場合
-      toast.error("予期しないエラーが発生しました");
+      toast.error(`予期しないエラーが発生しました: ${error.message}`);
     }
 
     return Promise.reject(error);
