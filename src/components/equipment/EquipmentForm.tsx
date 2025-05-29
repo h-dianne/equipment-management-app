@@ -12,11 +12,32 @@ import { useCreateEquipment } from "../../hooks/useEquipment";
 import { EquipmentSchema } from "../../api/equipmentApi";
 import LoadingButton from "../common/LoadingButton";
 
-// APIスキーマから必要な部分を抽出してフォーム用スキーマを作成
-const equipmentFormSchema = EquipmentSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true
+// カスタムエラーメッセージ付きでフォームスキーマを作成
+const equipmentFormSchema = z.object({
+  name: z.string().min(1, { message: "備品名は必須です" }),
+  category: z.enum(
+    [
+      "電子機器",
+      "オフィス家具",
+      "工具・作業用品",
+      "AV機器・周辺機器",
+      "消耗品",
+      "防災・安全用品",
+      "レンタル備品",
+      "社用車関連品"
+    ] as const,
+    {
+      errorMap: () => ({ message: "有効なカテゴリを選択してください" })
+    }
+  ),
+  status: z.enum(["使用中", "貸出中", "利用可能", "廃棄"] as const, {
+    errorMap: () => ({ message: "有効なステータスを選択してください" })
+  }),
+  quantity: z.number().min(1, { message: "最低1つ以上必要です" }),
+  storageLocation: z.string().min(1, { message: "保管場所は必須です" }),
+  purchaseDate: z.string().min(1, { message: "購入日は必須です" }),
+  borrower: z.string().optional(),
+  notes: z.string().optional()
 });
 
 // フォームのデータ型定義（Zodスキーマから型を生成）
