@@ -5,9 +5,9 @@ import Layout from "./components/common/Layout";
 import HomePage from "./pages/Homepage";
 import RegisterPage from "./pages/RegisterPage";
 import DetailPage from "./pages/DetailPage";
+import EditPage from "./pages/EditPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
-// TODO: Add function to update
 function App() {
   return (
     <BrowserRouter>
@@ -22,10 +22,7 @@ function App() {
 
           {/* Dynamic routes*/}
           <Route path="detail/:id" element={<DetailPage />} />
-          <Route
-            path="edit/:id"
-            element={<div>備品編集ページ (実装予定)</div>}
-          />
+          <Route path="edit/:id" element={<EditPage />} />
 
           {/* 404 route */}
           <Route path="*" element={<NotFoundPage />} />
