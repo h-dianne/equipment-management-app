@@ -35,7 +35,12 @@ const equipmentFormSchema = z.object({
   status: z.enum(["使用中", "貸出中", "利用可能", "廃棄"] as const, {
     errorMap: () => ({ message: "有効なステータスを選択してください" })
   }),
-  quantity: z.number().min(1, { message: "最低1つ以上必要です" }),
+  quantity: z.coerce
+    .number({
+      required_error: "最低1つ以上必要です",
+      invalid_type_error: "最低1つ以上必要です"
+    })
+    .min(1, { message: "最低1つ以上必要です" }),
   storageLocation: z.string().min(1, { message: "保管場所は必須です" }),
   purchaseDate: z.string().min(1, { message: "購入日は必須です" }),
   borrower: z.string().optional(),
