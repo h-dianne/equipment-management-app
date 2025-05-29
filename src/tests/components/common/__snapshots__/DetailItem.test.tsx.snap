@@ -1,43 +1,5 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`DetailItem > matches snapshot 1`] = `
-<DocumentFragment>
-  <div
-    class=""
-  >
-    <dt
-      class="text-sm font-medium text-gray-500"
-    >
-      保管場所
-    </dt>
-    <dd
-      class="mt-1 text-sm text-gray-900"
-    >
-      会議室B
-    </dd>
-  </div>
-</DocumentFragment>
-`;
-
-exports[`DetailItemコンポーネント > スナップショットと一致すること 1`] = `
-<DocumentFragment>
-  <div
-    class=""
-  >
-    <dt
-      class="text-sm font-medium text-gray-500"
-    >
-      保管場所
-    </dt>
-    <dd
-      class="mt-1 text-sm text-gray-900"
-    >
-      個人デスク
-    </dd>
-  </div>
-</DocumentFragment>
-`;
-
 exports[`DetailItemコンポーネント > スナップショットと一致することを確認 1`] = `
 <DocumentFragment>
   <div
