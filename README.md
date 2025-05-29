@@ -877,7 +877,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { EquipmentCategory, EquipmentStatus } from "../types/equipment";
 
-interface FilterState {
+type FilterState = {
   // State
   categoryFilter: EquipmentCategory | "";
   statusFilter: EquipmentStatus | "";
@@ -886,7 +886,7 @@ interface FilterState {
   setCategoryFilter: (category: EquipmentCategory | "") => void;
   setStatusFilter: (status: EquipmentStatus | "") => void;
   clearFilters: () => void;
-}
+};
 
 // ストアを定義
 const useFilterStore = create<FilterState>()(

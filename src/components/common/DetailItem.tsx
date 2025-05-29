@@ -1,14 +1,14 @@
 import React from "react";
 
-interface DetailItemProps {
+type DetailItemProps = {
   label: string;
   value: string;
   className?: string;
-}
+};
 
 /**
- * DetailItem component - Displays a labeled piece of information
- * Used primarily in detail views to show property-value pairs
+ * DetailItemコンポーネント - ラベル付き情報を表示します
+ * 主に詳細ビューでプロパティと値のペアを表示するために使用されます
  */
 const DetailItem: React.FC<DetailItemProps> = ({
   label,

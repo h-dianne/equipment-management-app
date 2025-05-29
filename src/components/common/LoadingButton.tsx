@@ -1,6 +1,6 @@
 import LoadingSpinner from "../common/LoadingSpinner";
 
-interface LoadingButtonProps {
+type LoadingButtonProps = {
   isLoading: boolean;
   loadingText?: string;
   children: React.ReactNode;
@@ -9,7 +9,7 @@ interface LoadingButtonProps {
   onClick?: () => void;
   disabled?: boolean;
   variant?: "primary" | "secondary" | "danger";
-}
+};
 
 /**
  * LoadingButton - ロード中にスピナーを表示するボタンコンポーネント

@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { Equipment } from "../types/equipment";
 
-interface EquipmentState {
+type EquipmentState = {
   // State
   selectedEquipment: Equipment | null;
   recentlyViewed: string[];
@@ -11,7 +11,7 @@ interface EquipmentState {
   selectEquipment: (equipment: Equipment | null) => void;
   addToRecentlyViewed: (equipmentId: string) => void;
   clearRecentlyViewed: () => void;
-}
+};
 
 // ストアを定義
 const useEquipmentStore = create<EquipmentState>()(

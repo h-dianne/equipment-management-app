@@ -54,9 +54,9 @@ type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
 const EQUIPMENT_CATEGORIES = EquipmentSchema.shape.category.options;
 const STATUS = EquipmentSchema.shape.status.options;
 
-interface EditEquipmentFormProps {
+type EditEquipmentFormProps = {
   equipment: Equipment;
-}
+};
 
 const EditEquipmentForm = ({ equipment }: EditEquipmentFormProps) => {
   // フォーム送信後の画面遷移用

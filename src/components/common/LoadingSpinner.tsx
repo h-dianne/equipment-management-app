@@ -4,13 +4,13 @@ import { ClipLoader, PulseLoader, BeatLoader } from "react-spinners";
 type SpinnerType = "clip" | "pulse" | "beat";
 type SpinnerSize = "sm" | "md" | "lg";
 
-interface LoadingSpinnerProps {
+type LoadingSpinnerProps = {
   type?: SpinnerType;
   size?: SpinnerSize;
   color?: string;
   loading?: boolean;
   className?: string;
-}
+};
 
 /**
  * LoadingSpinner コンポーネント - アプリ全体で一貫したローディングインジケーターを提供

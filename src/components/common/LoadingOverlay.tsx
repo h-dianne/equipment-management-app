@@ -1,11 +1,11 @@
 import LoadingSpinner from "../common/LoadingSpinner";
 
-interface LoadingOverlayProps {
+type LoadingOverlayProps = {
   isLoading: boolean;
   text?: string;
   children: React.ReactNode;
   spinnerType?: "clip" | "pulse" | "beat";
-}
+};
 
 /**
  * LoadingOverlay - ローディング中にコンテンツの上にスピナーを表示
