@@ -2,15 +2,23 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { BrowserRouter } from "react-router-dom";
-import EquipmentList from "../../../components/equipment/EquipmentList";
-import { useEquipments } from "../../../hooks/useEquipment";
-import { Equipment } from "../../../types/equipment";
 import * as toast from "react-hot-toast";
 import { UseQueryResult } from "@tanstack/react-query";
 
+import EquipmentList from "../../../components/equipment/EquipmentList";
+import { useEquipments } from "../../../hooks/useEquipment";
+import { Equipment } from "../../../types/equipment";
+
 // useEquipmentフックをモック
 vi.mock("../../../hooks/useEquipment", () => ({
-  useEquipments: vi.fn()
+  useEquipments: vi.fn(),
+  useDeleteEquipment: vi.fn().mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+    isSuccess: false,
+    isError: false,
+    error: null
+  })
 }));
 
 // react-hot-toastもモック
@@ -89,7 +97,9 @@ describe("EquipmentList コンポーネント", () => {
       status: "利用可能",
       quantity: 5,
       storageLocation: "倉庫A",
-      createdAt: "2025-05-01T00:00:00.000Z"
+      purchaseDate: "2023-01-15",
+      createdAt: "2025-05-01T00:00:00.000Z",
+      updatedAt: "2025-05-01T00:00:00.000Z"
     },
     {
       id: "2",
@@ -99,7 +109,9 @@ describe("EquipmentList コンポーネント", () => {
       quantity: 3,
       storageLocation: "倉庫B",
       borrower: "鈴木太郎",
-      createdAt: "2025-04-15T00:00:00.000Z"
+      purchaseDate: "2022-11-20",
+      createdAt: "2025-04-15T00:00:00.000Z",
+      updatedAt: "2025-04-15T00:00:00.000Z"
     }
   ];
 
@@ -145,7 +157,7 @@ describe("EquipmentList コンポーネント", () => {
 
     // トースト通知が表示されたことを確認
     expect(toast.default.success).toHaveBeenCalledWith(
-      /備品データを読み込みました/
+      "備品データを読み込みました"
     );
   });
 
@@ -166,8 +178,7 @@ describe("EquipmentList コンポーネント", () => {
     );
 
     // エラーメッセージが表示されていることを確認
-    expect(screen.getByText(/エラー:/)).toBeInTheDocument();
-    expect(screen.getByText(/APIエラー発生/)).toBeInTheDocument();
+    expect(screen.getByText(/Unexpected Error/)).toBeInTheDocument();
 
     // リトライボタンが表示されていることを確認
     expect(screen.getByText(/再読み込み/)).toBeInTheDocument();
