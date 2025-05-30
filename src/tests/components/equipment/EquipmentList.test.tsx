@@ -133,7 +133,9 @@ describe("EquipmentList コンポーネント", () => {
     );
 
     // ローディング表示が表示されていることを確認
-    expect(screen.getByText("読み込み中...")).toBeInTheDocument();
+    expect(
+      screen.getByText(/備品データを読み込んでいます.../)
+    ).toBeInTheDocument();
   });
 
   // テスト2: API呼び出し成功時の動作をテスト
@@ -178,7 +180,9 @@ describe("EquipmentList コンポーネント", () => {
     );
 
     // エラーメッセージが表示されていることを確認
-    expect(screen.getByText(/Unexpected Error/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/データの読み込みに失敗しました/)
+    ).toBeInTheDocument();
 
     // リトライボタンが表示されていることを確認
     expect(screen.getByText(/再読み込み/)).toBeInTheDocument();
@@ -215,7 +219,9 @@ describe("EquipmentList コンポーネント", () => {
     );
 
     // 最初はローディング表示を確認
-    expect(screen.getByText(/読み込み中.../)).toBeInTheDocument();
+    expect(
+      screen.getByText("備品データを読み込んでいます...")
+    ).toBeInTheDocument();
 
     // データが読み込まれた状態にモックを変更
     (useEquipments as unknown as ReturnType<typeof vi.fn>).mockReturnValue(
