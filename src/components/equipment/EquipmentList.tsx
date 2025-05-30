@@ -13,8 +13,8 @@ import useFilterStore from "../../stores/filterStore";
 import LoadingSpinner from "../common/LoadingSpinner";
 
 const EquipmentList = () => {
-  // グローバルストアからフィルターを取得
-  const { categoryFilter, statusFilter } = useFilterStore();
+  // グローバルストアからフィルターを取得（検索クエリも含む）
+  const { categoryFilter, statusFilter, searchQuery } = useFilterStore();
 
   const { data, isLoading, isFetching, isError, isSuccess, refetch, status } =
     useEquipments();
@@ -22,23 +22,44 @@ const EquipmentList = () => {
   const { mutate: deleteEquipment, isPending: isDeleting } =
     useDeleteEquipment();
 
-  // データまたはフィルターが変更された時のみ再計算
-  const filteredData = useMemo(() => {
+  // フィルタリングと検索されたデータをメモ化
+  const filteredAndSearchedData = useMemo(() => {
     if (!data) return [];
 
-    return data.filter((item) => {
+    let result = data;
+
+    // カテゴリとステータスフィルター
+    result = result.filter((item) => {
       const matchesCategory =
         !categoryFilter || item.category === categoryFilter;
       const matchesStatus = !statusFilter || item.status === statusFilter;
       return matchesCategory && matchesStatus;
     });
-  }, [data, categoryFilter, statusFilter]);
 
-  // ダッシュボードやサマリー表示に使用可能
+    // 検索クエリフィルター
+    if (searchQuery && searchQuery.trim() !== "") {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter((item) => {
+        return (
+          item.name.toLowerCase().includes(query) ||
+          item.category.toLowerCase().includes(query) ||
+          item.status.toLowerCase().includes(query) ||
+          item.storageLocation.toLowerCase().includes(query) ||
+          (item.borrower && item.borrower.toLowerCase().includes(query)) ||
+          (item.notes && item.notes.toLowerCase().includes(query))
+        );
+      });
+    }
+
+    return result;
+  }, [data, categoryFilter, statusFilter, searchQuery]);
+
+  // 統計情報をメモ化（検索結果とフィルター結果）
   const equipmentStats = useMemo(() => {
     if (!data || data.length === 0) {
       return {
         total: 0,
+        filteredTotal: 0,
         available: 0,
         inUse: 0,
         borrowed: 0,
@@ -48,12 +69,19 @@ const EquipmentList = () => {
 
     return {
       total: data.length,
-      available: data.filter((item) => item.status === "利用可能").length,
-      inUse: data.filter((item) => item.status === "使用中").length,
-      borrowed: data.filter((item) => item.status === "貸出中").length,
-      disposed: data.filter((item) => item.status === "廃棄").length
+      filteredTotal: filteredAndSearchedData.length,
+      available: filteredAndSearchedData.filter(
+        (item) => item.status === "利用可能"
+      ).length,
+      inUse: filteredAndSearchedData.filter((item) => item.status === "使用中")
+        .length,
+      borrowed: filteredAndSearchedData.filter(
+        (item) => item.status === "貸出中"
+      ).length,
+      disposed: filteredAndSearchedData.filter((item) => item.status === "廃棄")
+        .length
     };
-  }, [data]);
+  }, [data, filteredAndSearchedData]);
 
   // カテゴリ別表示やレポート機能に使用可能
   // const groupedByCategory = useMemo(() => {
@@ -69,12 +97,50 @@ const EquipmentList = () => {
   //   }, {} as Record<string, Equipment[]>);
   // }, [filteredData]);
 
-  // 名前順でソートしたデータ
+  // ソート済みデータをメモ化
   const sortedData = useMemo(() => {
-    if (!filteredData) return [];
+    if (!filteredAndSearchedData) return [];
 
-    return [...filteredData].sort((a, b) => a.name.localeCompare(b.name, "ja"));
-  }, [filteredData]);
+    return [...filteredAndSearchedData].sort((a, b) =>
+      a.name.localeCompare(b.name, "ja")
+    );
+  }, [filteredAndSearchedData]);
+
+  // 検索結果メッセージをメモ化
+  const searchResultMessage = useMemo(() => {
+    if (!searchQuery || searchQuery.trim() === "") return null;
+
+    const resultCount = filteredAndSearchedData.length;
+    const totalCount = data?.length || 0;
+
+    if (resultCount === 0) {
+      return `"${searchQuery}" に一致する備品が見つかりませんでした`;
+    }
+
+    if (resultCount === totalCount) {
+      return `全ての備品が "${searchQuery}" にマッチしています (${resultCount}件)`;
+    }
+
+    return `"${searchQuery}" の検索結果: ${resultCount}件`;
+  }, [searchQuery, filteredAndSearchedData.length, data?.length]);
+
+  // テキストハイライト関数
+  const highlightText = (text: string, query: string) => {
+    if (!query || query.trim() === "") return text;
+
+    const regex = new RegExp(`(${query.trim()})`, "gi");
+    const parts = text.split(regex);
+
+    return parts.map((part, index) =>
+      regex.test(part) ? (
+        <mark key={index} className="bg-yellow-200 px-1 rounded">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
+  };
 
   // 削除ハンドラー
   const handleDelete = (id: string) => {
@@ -133,22 +199,32 @@ const EquipmentList = () => {
   }
 
   // データが空の場合
-  if (isSuccess && (!filteredData || filteredData.length === 0)) {
+  if (isSuccess && (!sortedData || sortedData.length === 0)) {
     return (
       <div className="p-6 max-w-7xl mx-auto">
         <div className="bg-white shadow rounded-lg p-8 text-center">
-          <p className="text-gray-500">備品が見つかりませんでした</p>
-          {(categoryFilter || statusFilter) && (
-            <p className="text-sm text-gray-400 mt-2">
-              フィルター条件を変更してみてください
-            </p>
+          {searchQuery ? (
+            <div>
+              <p className="text-gray-500 mb-2">{searchResultMessage}</p>
+              <p className="text-sm text-gray-400">
+                検索条件を変更するか、フィルターをクリアしてみてください
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-gray-500">備品が見つかりませんでした</p>
+              {(categoryFilter || statusFilter) && (
+                <p className="text-sm text-gray-400 mt-2">
+                  フィルター条件を変更してみてください
+                </p>
+              )}
+            </div>
           )}
 
-          {/* 統計情報の表示例 */}
+          {/* 統計情報の表示 */}
           {equipmentStats.total > 0 && (
             <div className="mt-4 text-sm text-gray-500">
-              全体: {equipmentStats.total}件 (利用可能:{" "}
-              {equipmentStats.available}件)
+              全体: {equipmentStats.total}件
             </div>
           )}
         </div>
@@ -158,6 +234,7 @@ const EquipmentList = () => {
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto relative">
+      {/* Background fetch indicator */}
       {isFetching && !isLoading && data && (
         <div className="fixed top-4 right-4 z-50 bg-white shadow-lg rounded-lg p-3 border">
           <div className="flex items-center">
@@ -167,17 +244,26 @@ const EquipmentList = () => {
         </div>
       )}
 
-      {/* 統計情報の表示 */}
+      {/* 検索結果メッセージ */}
+      {searchResultMessage && (
+        <div className="mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded">
+          <p className="text-sm text-blue-700">{searchResultMessage}</p>
+        </div>
+      )}
+
+      {/*  統計情報の表示（検索・フィルター結果を反映） */}
       {equipmentStats.total > 0 && (
         <div className="mb-6 bg-white rounded-lg shadow p-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">統計情報</h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-gray-900">
-                {equipmentStats.total}
-              </div>
-              <div className="text-xs text-gray-500">合計</div>
-            </div>
+          <h3 className="text-sm font-medium text-gray-700 mb-2">
+            統計情報
+            {equipmentStats.filteredTotal !== equipmentStats.total && (
+              <span className="ml-2 text-xs text-gray-500">
+                (表示: {equipmentStats.filteredTotal}件 / 全体:{" "}
+                {equipmentStats.total}件)
+              </span>
+            )}
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
               <div className="text-2xl font-bold text-green-600">
                 {equipmentStats.available}
@@ -206,6 +292,7 @@ const EquipmentList = () => {
         </div>
       )}
 
+      {/* 検索・フィルター・ソート済みデータを表示 */}
       <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {sortedData.map((item: Equipment) => (
           <div
@@ -216,25 +303,27 @@ const EquipmentList = () => {
           >
             {/* カードコンテナ */}
             <div className="px-4 py-5 sm:p-4 flex flex-col flex-grow">
-              {/* 備品名とステータス */}
+              {/* 備品名とステータス（検索ハイライト付き） */}
               <div className="mb-2 flex items-start">
                 <h3 className="flex-1 mr-2 text-lg font-medium text-gray-900 break-words">
-                  {item.name}
+                  {highlightText(item.name, searchQuery || "")}
                 </h3>
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 ${getStatusColor(
                     item.status
                   )}`}
                 >
-                  {item.status}
+                  {highlightText(item.status, searchQuery || "")}
                 </span>
               </div>
 
-              {/* 備品の詳細 */}
+              {/* 備品の詳細（検索ハイライト付き） */}
               <div className="mt-4 space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-500">カテゴリ</span>
-                  <span className="text-sm text-gray-900">{item.category}</span>
+                  <span className="text-sm text-gray-900">
+                    {highlightText(item.category, searchQuery || "")}
+                  </span>
                 </div>
 
                 <div className="flex justify-between">
@@ -245,14 +334,16 @@ const EquipmentList = () => {
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-500">保管場所</span>
                   <span className="text-sm text-gray-900">
-                    {item.storageLocation}
+                    {highlightText(item.storageLocation, searchQuery || "")}
                   </span>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-500">使用者</span>
                   <span className="text-sm text-gray-900">
-                    {item.borrower || "ー"}
+                    {item.borrower
+                      ? highlightText(item.borrower, searchQuery || "")
+                      : "ー"}
                   </span>
                 </div>
 

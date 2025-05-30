@@ -6,13 +6,16 @@ type FilterState = {
   // State
   categoryFilter: EquipmentCategory | "";
   statusFilter: EquipmentStatus | "";
+  searchQuery: string;
 
   // Actions
   setCategoryFilter: (category: EquipmentCategory | "") => void;
   setStatusFilter: (status: EquipmentStatus | "") => void;
+  setSearchQuery: (query: string) => void;
   setFiltersFromUrl: (
     category: EquipmentCategory | "",
-    status: EquipmentStatus | ""
+    status: EquipmentStatus | "",
+    search?: string
   ) => void;
   clearFilters: () => void;
 };
@@ -24,20 +27,39 @@ const useFilterStore = create<FilterState>()(
       // Initial State
       categoryFilter: "",
       statusFilter: "",
+      searchQuery: "", //
 
       // Actions
       setCategoryFilter: (category) =>
         set({ categoryFilter: category }, false, "setCategoryFilter"),
+
       setStatusFilter: (status) =>
         set({ statusFilter: status }, false, "setStatusFilter"),
-      setFiltersFromUrl: (category, status) =>
+
+      setSearchQuery: (query) =>
+        set({ searchQuery: query }, false, "setSearchQuery"),
+
+      setFiltersFromUrl: (category, status, search = "") =>
         set(
-          { categoryFilter: category, statusFilter: status },
+          {
+            categoryFilter: category,
+            statusFilter: status,
+            searchQuery: search
+          },
           false,
           "setFiltersFromUrl"
         ),
+
       clearFilters: () =>
-        set({ categoryFilter: "", statusFilter: "" }, false, "clearFilters")
+        set(
+          {
+            categoryFilter: "",
+            statusFilter: "",
+            searchQuery: ""
+          },
+          false,
+          "clearFilters"
+        )
     }),
     { name: "Filter Store" }
   )
