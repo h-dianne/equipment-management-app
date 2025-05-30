@@ -5,12 +5,12 @@
       "name": "ノートパソコン Dell XPS 13",
       "category": "電子機器",
       "status": "使用中",
-      "quantity": 5,
+      "quantity": 4,
       "storageLocation": "IT部門オフィス",
       "purchaseDate": "2023-03-15",
       "borrower": "山田太郎",
       "createdAt": "2023-03-16T09:00:00Z",
-      "updatedAt": "2023-03-16T09:00:00Z",
+      "updatedAt": "2025-05-30T05:22:51.999Z",
       "notes": "開発チーム用"
     },
     {
@@ -43,13 +43,13 @@
       "id": "EQ-3001",
       "name": "電動ドリルセット",
       "category": "工具・作業用品",
-      "status": "貸出中",
+      "status": "廃棄",
       "quantity": 2,
       "storageLocation": "施設管理室",
       "purchaseDate": "2023-01-20",
       "borrower": "佐藤一郎",
       "createdAt": "2023-01-21T14:20:00Z",
-      "updatedAt": "2023-05-10T09:15:00Z",
+      "updatedAt": "2025-05-30T08:16:57.976Z",
       "notes": "2023年5月10日に佐藤氏に貸出"
     },
     {
@@ -196,17 +196,17 @@
       "updatedAt": "2025-05-28T06:18:22.253Z"
     },
     {
-      "id": "6ed6",
-      "name": "test",
+      "id": "a500",
+      "name": "ノートパソコン Dell XPS 13",
       "category": "AV機器・周辺機器",
       "status": "利用可能",
       "quantity": 1,
-      "storageLocation": "ロッカー",
-      "purchaseDate": "2025-05-29",
+      "storageLocation": "ダイアンの机",
+      "purchaseDate": "2025-05-30",
       "borrower": "",
       "notes": "",
-      "createdAt": "2025-05-29T01:43:20.288Z",
-      "updatedAt": "2025-05-29T01:43:20.288Z"
+      "createdAt": "2025-05-30T08:16:41.021Z",
+      "updatedAt": "2025-05-30T08:16:41.021Z"
     }
   ]
 }
