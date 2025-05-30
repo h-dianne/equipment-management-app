@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
+import { HiOutlineEye, HiOutlinePencil, HiOutlineTrash } from "react-icons/hi2";
+import { HiOutlineExclamationCircle } from "react-icons/hi";
 
 import { formatDate } from "../../utils/dateUtils";
 import { getStatusColor } from "../../utils/statusUtils";
@@ -10,7 +12,6 @@ import { useDeleteEquipment } from "../../hooks/useEquipment";
 import useFilterStore from "../../stores/filterStore";
 
 const EquipmentList = () => {
-  // Get filters from global store
   const { categoryFilter, statusFilter } = useFilterStore();
   const hasShownInitialToast = useRef(false);
 
@@ -58,17 +59,7 @@ const EquipmentList = () => {
         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-red-500"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <HiOutlineExclamationCircle className="h-5 w-5 text-red-500" />
             </div>
             <div className="ml-3">
               <p className="text-sm text-red-700">Unexpected Error</p>
@@ -96,7 +87,6 @@ const EquipmentList = () => {
     );
   }
 
-  // Render equipment list
   return (
     // Global container
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">
@@ -172,19 +162,7 @@ const EquipmentList = () => {
                   className="px-2 py-1.5 text-xs bg-blue-50 text-blue-700 rounded-md
                   hover:bg-blue-100 transition-colors flex items-center"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3.5 w-3.5 mr-1"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                    <path
-                      fillRule="evenodd"
-                      d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  <HiOutlineEye className="h-3.5 w-3.5 mr-1" />
                   詳細
                 </Link>
 
@@ -194,14 +172,7 @@ const EquipmentList = () => {
                   className="px-2 py-1.5 text-xs bg-green-50 text-green-700 rounded-md
                   hover:bg-green-100 transition-colors flex items-center"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3.5 w-3.5 mr-1"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                  </svg>
+                  <HiOutlinePencil className="h-3.5 w-3.5 mr-1" />
                   編集
                 </Link>
 
@@ -211,23 +182,7 @@ const EquipmentList = () => {
                   hover:bg-red-100 transition-colors flex items-center cursor-pointer"
                   onClick={() => handleDelete(item.id)}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3.5 w-3.5 mr-1"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"
-                      clipRule="evenodd"
-                    />
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 012 0v4a1 1 0 11-2 0V7zM12 7a1 1 0 012 0v4a1 1 0 11-2 0V7z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  <HiOutlineTrash className="h-3.5 w-3.5 mr-1" />
                   削除
                 </button>
               </div>
