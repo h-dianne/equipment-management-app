@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { HiOutlineEye, HiOutlinePencil, HiOutlineTrash } from "react-icons/hi2";
@@ -10,14 +10,17 @@ import { useEquipments } from "../../hooks/useEquipment";
 import { Equipment } from "../../types/equipment";
 import { useDeleteEquipment } from "../../hooks/useEquipment";
 import useFilterStore from "../../stores/filterStore";
+import LoadingSpinner from "../common/LoadingSpinner";
 
 const EquipmentList = () => {
+  // グローバルストアからフィルターを取得
   const { categoryFilter, statusFilter } = useFilterStore();
-  const hasShownInitialToast = useRef(false);
 
-  const { data, isLoading, isError, isSuccess, refetch } = useEquipments();
+  const { data, isLoading, isFetching, isError, isSuccess, refetch, status } =
+    useEquipments();
 
-  const { mutate: deleteEquipment } = useDeleteEquipment();
+  const { mutate: deleteEquipment, isPending: isDeleting } =
+    useDeleteEquipment();
 
   const filteredData = data?.filter((item) => {
     const matchesCategory = !categoryFilter || item.category === categoryFilter;
@@ -37,17 +40,18 @@ const EquipmentList = () => {
 
   // 成功時
   useEffect(() => {
-    if (isSuccess && data && data.length > 0 && !hasShownInitialToast.current) {
+    if (isSuccess && data && data.length > 0) {
       toast.success("備品データを読み込みました");
-      hasShownInitialToast.current = true;
     }
   }, [isSuccess, data]);
 
-  // ローディング時
-  if (isLoading) {
+  if (isLoading || status === "pending" || (!data && isFetching)) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-pulse text-gray-500">読み込み中...</div>
+      <div className="flex flex-col justify-center items-center min-h-[50vh]">
+        <LoadingSpinner type="clip" size="lg" />
+        <div className="mt-4 text-gray-500">
+          備品データを読み込んでいます...
+        </div>
       </div>
     );
   }
@@ -62,7 +66,9 @@ const EquipmentList = () => {
               <HiOutlineExclamationCircle className="h-5 w-5 text-red-500" />
             </div>
             <div className="ml-3">
-              <p className="text-sm text-red-700">Unexpected Error</p>
+              <p className="text-sm text-red-700">
+                データの読み込みに失敗しました
+              </p>
             </div>
           </div>
           <button
@@ -82,19 +88,34 @@ const EquipmentList = () => {
       <div className="p-6 max-w-7xl mx-auto">
         <div className="bg-white shadow rounded-lg p-8 text-center">
           <p className="text-gray-500">備品が見つかりませんでした</p>
+          {(categoryFilter || statusFilter) && (
+            <p className="text-sm text-gray-400 mt-2">
+              フィルター条件を変更してみてください
+            </p>
+          )}
         </div>
       </div>
     );
   }
 
   return (
-    // Global container
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto relative">
+      {isFetching && !isLoading && data && (
+        <div className="fixed top-4 right-4 z-50 bg-white shadow-lg rounded-lg p-3 border">
+          <div className="flex items-center">
+            <LoadingSpinner type="beat" size="sm" className="mr-2" />
+            <span className="text-sm text-gray-600">更新中...</span>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {filteredData?.map((item: Equipment) => (
           <div
             key={item.id}
-            className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200 flex flex-col"
+            className={`bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-all duration-200 flex flex-col ${
+              isFetching && data ? "opacity-75" : "opacity-100"
+            }`}
           >
             {/* カードコンテナ */}
             <div className="px-4 py-5 sm:p-4 flex flex-col flex-grow">
@@ -179,8 +200,9 @@ const EquipmentList = () => {
                 {/* 削除ボタン*/}
                 <button
                   className="px-2 py-1.5 text-xs bg-red-50 text-red-700 rounded-md
-                  hover:bg-red-100 transition-colors flex items-center cursor-pointer"
+                  hover:bg-red-100 transition-colors flex items-center cursor-pointer disabled:opacity-50"
                   onClick={() => handleDelete(item.id)}
+                  disabled={isDeleting}
                 >
                   <HiOutlineTrash className="h-3.5 w-3.5 mr-1" />
                   削除
