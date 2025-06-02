@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { HiOutlineEye, HiOutlinePencil, HiOutlineTrash } from "react-icons/hi2";
@@ -154,11 +154,18 @@ const EquipmentList = () => {
   };
 
   // 成功時のトースト
-  useEffect(() => {
-    if (isSuccess && data && data.length > 0) {
-      toast.success("備品データを読み込みました");
-    }
-  }, [isSuccess, data]);
+  // useEffect(() => {
+  //   if (isSuccess && data && data.length > 0 && !isFetching) {
+  //     const isInitiaLoad =
+  //       status === "success" &&
+  //       !window.sessionStorage.getItem("equipmentDataLoaded");
+
+  //     if (isInitiaLoad) {
+  //       toast.success("備品データを読み込みました");
+  //       window.sessionStorage.setItem("equipmentDataLoaded", "true");
+  //     }
+  //   }
+  // }, [isSuccess, data, isFetching, status]);
 
   // ローディング状態
   if (isLoading || status === "pending" || (!data && isFetching)) {

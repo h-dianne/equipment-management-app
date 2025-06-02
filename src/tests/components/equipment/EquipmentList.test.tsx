@@ -2,7 +2,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { BrowserRouter } from "react-router-dom";
-import * as toast from "react-hot-toast";
 import { UseQueryResult } from "@tanstack/react-query";
 
 import EquipmentList from "../../../components/equipment/EquipmentList";
@@ -156,11 +155,6 @@ describe("EquipmentList コンポーネント", () => {
       expect(screen.getByText("ノートパソコン")).toBeInTheDocument();
       expect(screen.getByText("デスクチェア")).toBeInTheDocument();
     });
-
-    // トースト通知が表示されたことを確認
-    expect(toast.default.success).toHaveBeenCalledWith(
-      "備品データを読み込みました"
-    );
   });
 
   // テスト3: エラーケースのテスト
@@ -240,11 +234,6 @@ describe("EquipmentList コンポーネント", () => {
       expect(screen.getByText("ノートパソコン")).toBeInTheDocument();
       expect(screen.getByText("デスクチェア")).toBeInTheDocument();
     });
-
-    // トースト通知が呼び出されたことを確認
-    expect(toast.default.success).toHaveBeenCalledWith(
-      "備品データを読み込みました"
-    );
   });
 
   // TODO: Write tests for delete function
