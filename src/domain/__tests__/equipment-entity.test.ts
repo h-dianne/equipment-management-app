@@ -72,7 +72,7 @@ describe("EquipmentEntity", () => {
   });
 
   describe("hasConsistentData", () => {
-    it("使用者がいて貸出中の場合は整合性あり", () => {
+    it("貸出中で使用者がいる場合は整合性あり", () => {
       const equipment = EquipmentEntity.fromData(
         createTestEquipment({ status: "貸出中", borrower: "山田太郎" })
       );
@@ -80,15 +80,31 @@ describe("EquipmentEntity", () => {
       expect(equipment.hasConsistentData()).toBe(true);
     });
 
-    it("使用者がいるのに利用可能の場合は整合性なし", () => {
+    it("貸出中で使用者がいない場合は整合性なし", () => {
       const equipment = EquipmentEntity.fromData(
-        createTestEquipment({ status: "利用可能", borrower: "山田太郎" })
+        createTestEquipment({ status: "貸出中", borrower: "" })
       );
 
       expect(equipment.hasConsistentData()).toBe(false);
     });
 
-    it("使用者がいなくて利用可能の場合は整合性あり", () => {
+    it("使用中で使用者がいる場合は整合性あり", () => {
+      const equipment = EquipmentEntity.fromData(
+        createTestEquipment({ status: "使用中", borrower: "山田太郎" })
+      );
+
+      expect(equipment.hasConsistentData()).toBe(true);
+    });
+
+    it("使用中で使用者がいない場合も整合性あり", () => {
+      const equipment = EquipmentEntity.fromData(
+        createTestEquipment({ status: "使用中", borrower: "" })
+      );
+
+      expect(equipment.hasConsistentData()).toBe(true);
+    });
+
+    it("利用可能で使用者がいない場合は整合性あり", () => {
       const equipment = EquipmentEntity.fromData(
         createTestEquipment({ status: "利用可能", borrower: "" })
       );
@@ -96,12 +112,12 @@ describe("EquipmentEntity", () => {
       expect(equipment.hasConsistentData()).toBe(true);
     });
 
-    it("使用者がいなくて貸出中の場合は整合性なし", () => {
+    it("利用可能で使用者がいる場合も整合性あり（警告レベル）", () => {
       const equipment = EquipmentEntity.fromData(
-        createTestEquipment({ status: "貸出中", borrower: "" })
+        createTestEquipment({ status: "利用可能", borrower: "山田太郎" })
       );
 
-      expect(equipment.hasConsistentData()).toBe(false);
+      expect(equipment.hasConsistentData()).toBe(true);
     });
   });
 });

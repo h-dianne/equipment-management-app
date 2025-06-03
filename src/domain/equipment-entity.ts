@@ -40,16 +40,23 @@ export class EquipmentEntity {
 
   // ビジネスメソッド: データ整合性チェック
   hasConsistentData(): boolean {
-    // ビジネスルール: 使用者がいる場合はステータスが貸出中であること
-    const hasBorrower =
-      this.data.borrower && this.data.borrower.trim().length > 0;
+    const hasBorrower = !!(
+      this.data.borrower && this.data.borrower.trim().length > 0
+    );
 
-    if (hasBorrower) {
-      return this.data.status === "貸出中";
+    // ルール1: 貸出中の場合は使用者が必須
+    if (this.data.status === "貸出中") {
+      return hasBorrower; // 使用者がいる場合のみOK
     }
 
-    // 使用者がいない場合は貸出中以外であること
-    return this.data.status !== "貸出中";
+    // ルール2: 使用中の場合は使用者がいてもいなくてもOK
+    if (this.data.status === "使用中") {
+      return true; // 常にOK
+    }
+
+    // ルール3: その他のステータス（利用可能、廃棄など）では使用者がいない方が正常
+    // ただし、使用者がいても警告レベル（エラーではない）
+    return true;
   }
 
   // データアクセス
