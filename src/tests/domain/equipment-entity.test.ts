@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { EquipmentEntity } from "../equipment-entity";
+import { EquipmentEntity } from "../../domain/equipment-entity";
 import { Equipment } from "../../types/equipment";
 
 describe("EquipmentEntity", () => {
