@@ -1,4 +1,5 @@
 import LoadingSpinner from "../common/LoadingSpinner";
+import Button from "../ui/Button";
 
 type LoadingButtonProps = {
   isLoading: boolean;
@@ -9,6 +10,7 @@ type LoadingButtonProps = {
   onClick?: () => void;
   disabled?: boolean;
   variant?: "primary" | "secondary" | "danger";
+  size?: "sm" | "md";
 };
 
 /**
@@ -23,53 +25,45 @@ type LoadingButtonProps = {
  * @param onClick - クリックハンドラー
  * @param disabled - ボタンを無効化するかどうか
  * @param variant - ボタンのスタイルバリアント ('primary', 'secondary', 'danger')
+ * @param size - ボタンのサイズ ('sm', 'md')
  */
 const LoadingButton = ({
   isLoading,
   loadingText,
   children,
-  className = "",
-  type = "button",
-  onClick,
-  disabled = false,
-  variant = "primary"
+  variant = "primary",
+  size = "md",
+  ...props
 }: LoadingButtonProps) => {
-  // スタイルバリアントの定義
-  const variantClasses = {
-    primary: "bg-slate-600 text-white hover:bg-slate-700 focus:ring-slate-500",
-    secondary:
-      "bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500",
-    danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500"
+  // Spinner
+  const getSpinnerColor = () => {
+    switch (variant) {
+      case "primary":
+      case "danger":
+        return "white";
+      case "secondary":
+      default:
+        return "#4B5563"; // gray-600
+    }
   };
 
-  // 基本的なボタンスタイル
-  const baseClasses =
-    "px-4 py-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed";
-
   return (
-    <button
-      type={type}
-      className={`${baseClasses} ${variantClasses[variant]} ${className}`}
-      onClick={onClick}
-      disabled={disabled || isLoading}
+    <Button
+      variant={variant}
+      size={size}
+      disabled={props.disabled || isLoading}
+      {...props}
     >
-      <div className="flex items-center justify-center">
-        {isLoading && (
-          <LoadingSpinner
-            type="beat"
-            size="sm"
-            color={
-              variant === "primary" || variant === "danger"
-                ? "white"
-                : "#4B5563"
-            }
-            className="mr-2"
-          />
-        )}
-        <span>{isLoading && loadingText ? loadingText : children}</span>
-      </div>
-    </button>
+      {isLoading && (
+        <LoadingSpinner
+          type="beat"
+          size="sm"
+          color={getSpinnerColor()}
+          className="mr-2"
+        />
+      )}
+      <span>{isLoading && loadingText ? loadingText : children}</span>
+    </Button>
   );
 };
-
 export default LoadingButton;
