@@ -17,7 +17,7 @@ const DetailPage = () => {
   const { selectEquipment, addToRecentlyViewed } = useEquipmentStore();
 
   // id を使って特定の備品データを取得
-  const { data, isLoading, isError, error } = useEquipmentById(id || "");
+  const { data, isLoading, isError } = useEquipmentById(id || "");
 
   // データがロードされたら、グローバルステートを更新
   useEffect(() => {
@@ -52,7 +52,7 @@ const DetailPage = () => {
             </div>
             <div className="ml-3">
               <p className="text-sm text-red-700">
-                エラー: {(error as Error).message}
+                予期せぬエラーが発生しました。もう一度試してください。
               </p>
             </div>
           </div>

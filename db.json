@@ -31,12 +31,12 @@
       "name": "エルゴノミックチェア",
       "category": "オフィス家具",
       "status": "使用中",
-      "quantity": 10,
+      "quantity": 2,
       "storageLocation": "3階オフィス",
       "purchaseDate": "2022-12-05",
-      "borrower": "",
+      "borrower": "山田、田中",
       "createdAt": "2022-12-06T08:45:00Z",
-      "updatedAt": "2022-12-06T08:45:00Z",
+      "updatedAt": "2025-06-03T06:57:15.182Z",
       "notes": "座りごこちの良いハイエンドモデル"
     },
     {
@@ -47,9 +47,9 @@
       "quantity": 2,
       "storageLocation": "施設管理室",
       "purchaseDate": "2023-01-20",
-      "borrower": "佐藤一郎",
+      "borrower": "",
       "createdAt": "2023-01-21T14:20:00Z",
-      "updatedAt": "2025-05-30T08:16:57.976Z",
+      "updatedAt": "2025-06-03T06:50:50.111Z",
       "notes": "2023年5月10日に佐藤氏に貸出"
     },
     {
@@ -88,8 +88,8 @@
       "purchaseDate": "2022-09-15",
       "borrower": "",
       "createdAt": "2022-09-16T10:00:00Z",
-      "updatedAt": "2022-09-16T10:00:00Z",
-      "notes": "年次点検: 2023年9月予定"
+      "updatedAt": "2025-06-03T07:00:42.253Z",
+      "notes": "年次点検: 2026年9月予定"
     },
     {
       "id": "EQ-7001",
@@ -151,10 +151,10 @@
       "quantity": 1,
       "storageLocation": "ロッカー①",
       "purchaseDate": "2022-01-15",
-      "borrower": "Cさん",
+      "borrower": "山田",
       "createdAt": "2022-01-15",
-      "updatedAt": "2022-02-15",
-      "notes": "Cさんが使用中"
+      "updatedAt": "2025-06-03T07:39:59.026Z",
+      "notes": ""
     },
     {
       "id": "5d51",
