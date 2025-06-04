@@ -3,67 +3,112 @@
  * このコンポーネントは新しい備品を登録するためのフォームを提供し、バリデーション機能を含みます
  */
 
+// src/components/equipment/EquipmentFormDomainZod.tsx
+// ドメインロジック + Zod validation の統合版
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo } from "react";
 
 import { useCreateEquipment } from "../../hooks/useEquipment";
 import { EquipmentSchema } from "../../api/equipmentApi";
+import { EquipmentEntity } from "../../domain/equipment-entity";
 import LoadingButton from "../common/LoadingButton";
 
-// カスタムエラーメッセージ付きでフォームスキーマを作成
-const equipmentFormSchema = z.object({
-  name: z.string().min(1, { message: "備品名は必須です" }),
-  category: z.enum(
-    [
-      "電子機器",
-      "オフィス家具",
-      "工具・作業用品",
-      "AV機器・周辺機器",
-      "消耗品",
-      "防災・安全用品",
-      "レンタル備品",
-      "社用車関連品"
-    ] as const,
+// Zodスキーマ定義（基本的なフィールド検証）
+const equipmentFormSchema = z
+  .object({
+    name: z.string().min(1, { message: "備品名は必須です" }),
+    category: z.enum(
+      [
+        "電子機器",
+        "オフィス家具",
+        "工具・作業用品",
+        "AV機器・周辺機器",
+        "消耗品",
+        "防災・安全用品",
+        "レンタル備品",
+        "社用車関連品"
+      ] as const,
+      {
+        errorMap: () => ({ message: "有効なカテゴリを選択してください" })
+      }
+    ),
+    status: z.enum(["使用中", "貸出中", "利用可能", "廃棄"] as const, {
+      errorMap: () => ({ message: "有効なステータスを選択してください" })
+    }),
+    quantity: z.number().min(1, { message: "最低1つ以上必要です" }),
+    storageLocation: z.string().min(1, { message: "保管場所は必須です" }),
+    purchaseDate: z.string().min(1, { message: "購入日は必須です" }),
+    borrower: z.string().optional(),
+    notes: z.string().optional()
+  })
+  // ドメインロジックを使ったカスタムバリデーション
+  .refine(
+    (data) => {
+      // ドメインエンティティのビジネスルール検証を使用
+      const businessRuleErrors =
+        EquipmentEntity.validateBusinessRulesForForm(data);
+      return businessRuleErrors.length === 0;
+    },
     {
-      errorMap: () => ({ message: "有効なカテゴリを選択してください" })
+      message: "ビジネスルール違反があります",
+      path: ["root"] // エラーをルートレベルに設定
     }
-  ),
-  status: z.enum(["使用中", "貸出中", "利用可能", "廃棄"] as const, {
-    errorMap: () => ({ message: "有効なステータスを選択してください" })
-  }),
-  quantity: z.number().min(1, { message: "最低1つ以上必要です" }),
-  storageLocation: z.string().min(1, { message: "保管場所は必須です" }),
-  purchaseDate: z.string().min(1, { message: "購入日は必須です" }),
-  borrower: z.string().optional(),
-  notes: z.string().optional()
-});
+  )
+  // 個別のビジネスルール検証
+  .refine(
+    (data) => {
+      // 貸出中の場合は使用者必須
+      if (data.status === "貸出中") {
+        return data.borrower && data.borrower.trim().length > 0;
+      }
+      return true;
+    },
+    {
+      message: "ステータスが「貸出中」の場合、使用者の入力は必須です",
+      path: ["borrower"]
+    }
+  )
+  .refine(
+    (data) => {
+      // 購入日の未来日チェック
+      if (data.purchaseDate) {
+        const today = new Date().toISOString().split("T")[0];
+        return data.purchaseDate <= today;
+      }
+      return true;
+    },
+    {
+      message: "購入日は未来の日付にできません",
+      path: ["purchaseDate"]
+    }
+  );
 
-// フォームのデータ型定義（Zodスキーマから型を生成）
+// フォームのデータ型定義
 type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
 
-// カテゴリとステータスの配列もスキーマから導出
+// カテゴリとステータスの配列
 const EQUIPMENT_CATEGORIES = EquipmentSchema.shape.category.options;
 const STATUS = EquipmentSchema.shape.status.options;
 
 const EquipmentForm = () => {
-  // フォーム送信後の画面遷移用
   const navigate = useNavigate();
-
-  // 備品作成用カスタムフック（React Query使用）
-  // isPendingはAPI通信中かどうかを示す
   const { mutate, isPending } = useCreateEquipment();
 
-  // react-hook-formでフォームを初期化
   const {
-    register, // 入力フィールドを登録する関数
-    handleSubmit, // フォーム送信を処理する関数
-    reset, // フォームの値をリセットする関数
-    formState: { errors } // フォームのバリデーションエラー
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors },
+    setError,
+    clearErrors
   } = useForm<EquipmentFormData>({
-    resolver: zodResolver(equipmentFormSchema), // Zodスキーマをバリデーション用に接続
-    mode: "onBlur", // フォーカスを失った時にバリデーション
+    resolver: zodResolver(equipmentFormSchema),
+    mode: "onBlur",
     defaultValues: {
       category: "AV機器・周辺機器",
       status: "利用可能",
@@ -72,12 +117,98 @@ const EquipmentForm = () => {
     }
   });
 
-  /**
-   * フォーム送信ハンドラ
-   * データをAPIに送信し、成功シナリオを処理する
-   */
+  // フォームデータを監視
+  const formData = watch();
+
+  // ドメインロジックによるビジネスインサイト
+  const businessInsights = useMemo(
+    () => ({
+      // フォーム完成度
+      completionRate: (() => {
+        const requiredFields = [
+          "name",
+          "category",
+          "status",
+          "quantity",
+          "storageLocation",
+          "purchaseDate"
+        ];
+        const completedFields = requiredFields.filter((field) => {
+          const value = formData[field as keyof EquipmentFormData];
+          return value !== undefined && value !== "";
+        }).length;
+        return Math.round((completedFields / requiredFields.length) * 100);
+      })(),
+
+      // データ整合性チェック（ドメインロジック使用）
+      isDataConsistent: (() => {
+        const businessErrors =
+          EquipmentEntity.validateBusinessRulesForForm(formData);
+        return businessErrors.length === 0;
+      })(),
+
+      // 警告の有無
+      hasWarnings: (() => {
+        const businessErrors =
+          EquipmentEntity.validateBusinessRulesForForm(formData);
+        return businessErrors.some((error) =>
+          error.includes("通常設定しません")
+        );
+      })(),
+
+      // ビジネスルールエラー取得
+      getBusinessErrors: () => {
+        return EquipmentEntity.validateBusinessRulesForForm(formData);
+      }
+    }),
+    [formData]
+  );
+
+  // ステータス変更時のリアルタイムビジネスルール検証
+  useEffect(() => {
+    const businessErrors = businessInsights.getBusinessErrors();
+
+    // 既存のビジネスルールエラーをクリア
+    clearErrors("borrower");
+
+    // 新しいビジネスルールエラーを設定
+    businessErrors.forEach((error) => {
+      if (error.includes("使用者") && error.includes("必須")) {
+        setError("borrower", {
+          type: "business",
+          message: error
+        });
+      } else if (error.includes("通常設定しません")) {
+        setError("borrower", {
+          type: "warning",
+          message: error
+        });
+      }
+    });
+  }, [
+    formData.status,
+    formData.borrower,
+    setError,
+    clearErrors,
+    businessInsights
+  ]);
+
+  // フォーム送信ハンドラー
   const onSubmit = (data: EquipmentFormData) => {
-    mutate(data, {
+    // ドメインロジックによる最終検証
+    const validation = EquipmentEntity.validateFormData(data);
+
+    if (!validation.isValid) {
+      console.error("Domain validation failed:", validation.errors);
+      // Zodで捕捉されなかったビジネスルールエラーがある場合
+      return;
+    }
+
+    // ドメインロジックでデータを整形
+    const preparedData = EquipmentEntity.prepareForSubmission(data);
+
+    // API送信
+    mutate(preparedData, {
       onSuccess: () => {
         reset();
         navigate("/");
@@ -119,10 +250,7 @@ const EquipmentForm = () => {
               }`}
             />
             {errors.name && (
-              <p
-                className="text-base text-red-600 flex items-center"
-                id="name-error"
-              >
+              <p className="text-base text-red-600" id="name-error">
                 {errors.name.message}
               </p>
             )}
@@ -148,7 +276,7 @@ const EquipmentForm = () => {
                   : "border-gray-300 focus:border-gray-500"
               }`}
             >
-              <option value=""></option>
+              <option value="">選択してください</option>
               {EQUIPMENT_CATEGORIES.map((category) => (
                 <option key={category} value={category}>
                   {category}
@@ -156,10 +284,7 @@ const EquipmentForm = () => {
               ))}
             </select>
             {errors.category && (
-              <p
-                className="text-base text-red-600 flex items-center"
-                id="category-error"
-              >
+              <p className="text-base text-red-600" id="category-error">
                 {errors.category.message}
               </p>
             )}
@@ -185,7 +310,7 @@ const EquipmentForm = () => {
                   : "border-gray-300 focus:border-gray-500"
               }`}
             >
-              <option value=""></option>
+              <option value="">選択してください</option>
               {STATUS.map((status) => (
                 <option key={status} value={status}>
                   {status}
@@ -193,10 +318,7 @@ const EquipmentForm = () => {
               ))}
             </select>
             {errors.status && (
-              <p
-                className="text-base text-red-600 flex items-center"
-                id="status-error"
-              >
+              <p className="text-base text-red-600" id="status-error">
                 {errors.status.message}
               </p>
             )}
@@ -214,6 +336,7 @@ const EquipmentForm = () => {
               id="quantity"
               type="number"
               min="1"
+              max="9999"
               placeholder="例: 1"
               {...register("quantity", { valueAsNumber: true })}
               aria-invalid={errors.quantity ? "true" : "false"}
@@ -226,10 +349,7 @@ const EquipmentForm = () => {
               }`}
             />
             {errors.quantity && (
-              <p
-                className="text-base text-red-600 flex items-center"
-                id="quantity-error"
-              >
+              <p className="text-base text-red-600" id="quantity-error">
                 {errors.quantity.message}
               </p>
             )}
@@ -258,10 +378,7 @@ const EquipmentForm = () => {
               }`}
             />
             {errors.storageLocation && (
-              <p
-                className="text-base text-red-600 flex items-center"
-                id="storageLocation-error"
-              >
+              <p className="text-base text-red-600" id="storageLocation-error">
                 {errors.storageLocation.message}
               </p>
             )}
@@ -289,22 +406,22 @@ const EquipmentForm = () => {
               }`}
             />
             {errors.purchaseDate && (
-              <p
-                className="text-base text-red-600 flex items-center"
-                id="purchaseDate-error"
-              >
+              <p className="text-base text-red-600" id="purchaseDate-error">
                 {errors.purchaseDate.message}
               </p>
             )}
           </div>
 
-          {/* 使用者 */}
+          {/* 使用者（ドメインロジック統合） */}
           <div className="space-y-1">
             <label
               htmlFor="borrower"
               className="block text-base font-medium text-gray-700"
             >
               使用者
+              {formData.status === "貸出中" && (
+                <span className="ml-1 text-red-500">*</span>
+              )}
             </label>
             <input
               id="borrower"
@@ -322,7 +439,11 @@ const EquipmentForm = () => {
             />
             {errors.borrower && (
               <p
-                className="text-base text-red-600 flex items-center"
+                className={`text-base ${
+                  errors.borrower.message?.includes("通常設定しません")
+                    ? "text-yellow-600" // 警告
+                    : "text-red-600" // エラー
+                }`}
                 id="borrower-error"
               >
                 {errors.borrower.message}
@@ -352,25 +473,10 @@ const EquipmentForm = () => {
                   : "border-gray-300 focus:border-gray-500"
               }`}
           />
-          {errors.notes && (
-            <p
-              className="text-base text-red-600 flex items-center"
-              id="notes-error"
-            >
-              {errors.notes.message}
-            </p>
-          )}
-        </div>
-
-        {/* 必須項目の説明 */}
-        <div className="mt-4 text-base text-gray-500 flex items-center">
-          <span className="text-red-500 mr-1">*</span>
-          必須項目
         </div>
 
         {/* ボタンコンテナ */}
         <div className="mt-6 flex justify-end space-x-3">
-          {/* クリアボタン */}
           <button
             type="button"
             onClick={() => reset()}
@@ -378,10 +484,9 @@ const EquipmentForm = () => {
             text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400
             transition duration-200"
           >
-            クリア
+            リセット
           </button>
 
-          {/* 送信ボタン */}
           <LoadingButton
             type="submit"
             isLoading={isPending}
