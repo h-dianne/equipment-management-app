@@ -1,10 +1,16 @@
 import { Equipment as EquipmentData } from "../types/equipment";
+import { CreateEquipmentInput } from "../api/equipmentApi";
 
 /**
  * 備品エンティティ - ビジネスロジックを含む
  *
  * 既存のEquipment型をベースに、ビジネスメソッドを追加
  */
+
+export type ValidationResult = {
+  isValid: boolean;
+  errors: string[];
+};
 
 export class EquipmentEntity {
   constructor(private data: EquipmentData) {}
@@ -79,5 +85,232 @@ export class EquipmentEntity {
   // 生データを取得（API送信用）
   toData(): EquipmentData {
     return { ...this.data };
+  }
+
+  // === フォーム専用のバリデーションメソッド ===
+
+  /**
+   * フォーム入力データの完全なバリデーション
+   * @param formData フォームから送信されたデータ
+   * @returns バリデーション結果
+   */
+  static validateFormData(
+    formData: Partial<CreateEquipmentInput>
+  ): ValidationResult {
+    const errors: string[] = [];
+
+    // 必須フィールドのチェック
+    if (!formData.name || formData.name.trim().length === 0) {
+      errors.push("備品名は必須です");
+    }
+
+    if (!formData.category) {
+      errors.push("カテゴリを選択してください");
+    }
+
+    if (!formData.status) {
+      errors.push("ステータスを選択してください");
+    }
+
+    if (!formData.quantity || formData.quantity < 1) {
+      errors.push("数量は1以上である必要があります");
+    }
+
+    if (
+      !formData.storageLocation ||
+      formData.storageLocation.trim().length === 0
+    ) {
+      errors.push("保管場所は必須です");
+    }
+
+    if (!formData.purchaseDate) {
+      errors.push("購入日は必須です");
+    }
+
+    // ビジネスルールのチェック
+    const businessRuleErrors = this.validateBusinessRulesForForm(formData);
+    errors.push(...businessRuleErrors);
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  /**
+   * フォーム用のビジネスルール検証
+   * @param formData フォームデータ
+   * @returns ビジネスルール違反のエラー配列
+   */
+  static validateBusinessRulesForForm(
+    formData: Partial<CreateEquipmentInput>
+  ): string[] {
+    const errors: string[] = [];
+
+    // ビジネスルール: 貸出中の場合は使用者が必須
+    if (formData.status === "貸出中") {
+      if (!formData.borrower || formData.borrower.trim().length === 0) {
+        errors.push("ステータスが「貸出中」の場合、使用者の入力は必須です");
+      }
+    }
+
+    // ビジネスルール: 利用可能/廃棄の場合は使用者を設定すべきでない（警告レベル）
+    if (
+      (formData.status === "利用可能" || formData.status === "廃棄") &&
+      formData.borrower &&
+      formData.borrower.trim().length > 0
+    ) {
+      errors.push(
+        `ステータスが「${formData.status}」の場合、使用者は通常設定しません`
+      );
+    }
+
+    // ビジネスルール: 購入日は未来日不可
+    if (formData.purchaseDate) {
+      const today = new Date().toISOString().split("T")[0]; // "2025-06-04"
+
+      if (formData.purchaseDate > today) {
+        errors.push("購入日は未来の日付にできません");
+      }
+    }
+
+    // ビジネスルール: 備品名の長さ制限
+    if (formData.name && formData.name.length > 100) {
+      errors.push("備品名は100文字以内で入力してください");
+    }
+
+    // ビジネスルール: 数量の上限チェック
+    if (formData.quantity && formData.quantity > 9999) {
+      errors.push("数量は9999以下で入力してください");
+    }
+
+    return errors;
+  }
+
+  /**
+   * フィールド別のバリデーション（リアルタイム用）
+   * @param fieldName フィールド名
+   * @param value フィールドの値
+   * @param otherValues 他のフィールドの値（関連チェック用）
+   * @returns そのフィールドのエラー配列
+   */
+  static validateField(
+    fieldName: keyof CreateEquipmentInput,
+    value: string | number | undefined,
+    otherValues: Partial<CreateEquipmentInput> = {}
+  ): string[] {
+    const errors: string[] = [];
+
+    switch (fieldName) {
+      case "name":
+        if (
+          !value ||
+          (typeof value === "string" && value.trim().length === 0)
+        ) {
+          errors.push("備品名は必須です");
+        } else if (typeof value === "string" && value.length > 100) {
+          errors.push("備品名は100文字以内で入力してください");
+        }
+        break;
+
+      case "quantity":
+        if (!value || (typeof value === "number" && value < 1)) {
+          errors.push("数量は1以上である必要があります");
+        } else if (typeof value === "number" && value > 9999) {
+          errors.push("数量は9999以下で入力してください");
+        }
+        break;
+
+      case "purchaseDate":
+        if (!value) {
+          errors.push("購入日は必須です");
+        } else if (typeof value === "string") {
+          const purchaseDate = new Date(value);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          if (purchaseDate > today) {
+            errors.push("購入日は未来の日付にできません");
+          }
+        }
+        break;
+
+      case "borrower": {
+        const borrowerValue = typeof value === "string" ? value : "";
+        // 使用者フィールドのビジネスルールチェック
+        if (
+          otherValues.status === "貸出中" &&
+          (!borrowerValue || borrowerValue.trim().length === 0)
+        ) {
+          errors.push("ステータスが「貸出中」の場合、使用者の入力は必須です");
+        }
+        if (
+          (otherValues.status === "利用可能" ||
+            otherValues.status === "廃棄") &&
+          borrowerValue &&
+          borrowerValue.trim().length > 0
+        ) {
+          errors.push(
+            `ステータスが「${otherValues.status}」の場合、使用者は通常設定しません`
+          );
+        }
+        break;
+      }
+
+      case "storageLocation":
+        if (
+          !value ||
+          (typeof value === "string" && value.trim().length === 0)
+        ) {
+          errors.push("保管場所は必須です");
+        }
+        break;
+
+      case "category":
+        if (!value) {
+          errors.push("カテゴリを選択してください");
+        }
+        break;
+
+      case "status":
+        if (!value) {
+          errors.push("ステータスを選択してください");
+        }
+        break;
+    }
+
+    return errors;
+  }
+
+  /**
+   * フォームの推奨デフォルト値を生成
+   * @returns 新規備品作成時の推奨デフォルト値
+   */
+  static getFormDefaults(): Partial<CreateEquipmentInput> {
+    return {
+      category: "AV機器・周辺機器",
+      status: "利用可能",
+      quantity: 1,
+      purchaseDate: new Date().toISOString().split("T")[0], // 今日の日付
+      borrower: "",
+      notes: ""
+    };
+  }
+
+  /**
+   * フォームデータをAPI送信用に変換
+   * @param formData フォームデータ
+   * @returns API送信可能な形式
+   */
+  static prepareForSubmission(
+    formData: CreateEquipmentInput
+  ): CreateEquipmentInput {
+    return {
+      ...formData,
+      name: formData.name.trim(),
+      storageLocation: formData.storageLocation.trim(),
+      borrower: formData.borrower?.trim() || undefined,
+      notes: formData.notes?.trim() || undefined
+    };
   }
 }
