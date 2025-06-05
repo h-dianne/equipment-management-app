@@ -18,11 +18,12 @@
     - [3-3. Task 1-3. データの検証と型安全性](#3-3-task-1-3-データの検証と型安全性)
       - [zod によるレスポンスのバリデーション](#zod-によるレスポンスのバリデーション)
       - [型の自動生成と型安全性の確保](#型の自動生成と型安全性の確保)
+      - [バリデーションエラーハンドリング](#バリデーションエラーハンドリング)
     - [3-4. Task 1-4. データ操作と状態管理](#3-4-task-1-4-データ操作と状態管理)
       - [データ取得（useQuery）の実装](#データ取得usequeryの実装)
       - [データの作成、更新、削除（useMutation）の実装](#データの作成更新削除usemutationの実装)
     - [3-5. Task 1-5. エラーハンドリングと UI 状態管理](#3-5-task-1-5-エラーハンドリングと-ui-状態管理)
-      - [トーストによるエラー通知の実装](#トーストによるエラー通知の実装)
+      - [統合されたエラーハンドリング](#統合されたエラーハンドリング)
       - [ローディング、エラー、成功状態の UI 制御](#ローディングエラー成功状態の-ui-制御)
   - [4. Task 2. フォームの制御と入力検証の実装方法の習得](#4-task-2-フォームの制御と入力検証の実装方法の習得)
     - [4-1. Task 2-1. フォーム制御と状態管理](#4-1-task-2-1-フォーム制御と状態管理)
@@ -126,7 +127,7 @@ npm run dev:all
 
 ##### axios インスタンスの設定
 
-まず、一貫した API 通信のために設定済みの axios インスタンスを作成しています：
+一貫した API 通信のために設定済みの axios インスタンスを作成しています：
 
 ```typescript
 // src/api/client.ts
@@ -136,6 +137,13 @@ import toast from "react-hot-toast";
 // APIのベースURL
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+
+// カスタムエラー型の定義
+type ApiErrorResponse = {
+  message?: string;
+  error?: string;
+  statusCode?: number;
+};
 
 // デフォルト設定でaxiosインスタンスを作成
 export const apiClient = axios.create({
@@ -160,13 +168,17 @@ apiClient.interceptors.request.use(
 // レスポンスインターセプター - 全てのレスポンス後に実行
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
+  (error: AxiosError<ApiErrorResponse>) => {
     // 一般的なエラーシナリオを処理
     if (error.response) {
       const status = error.response.status;
+      const errorData = error.response.data;
+      const message =
+        errorData?.message || errorData?.error || "エラーが発生しました";
+
       switch (status) {
         case 400:
-          toast.error("無効なリクエストです");
+          toast.error(`無効なリクエストです: ${message}`);
           break;
         case 401:
           toast.error("認証が必要です");
@@ -177,16 +189,24 @@ apiClient.interceptors.response.use(
         case 404:
           toast.error("データが見つかりません");
           break;
+        case 422:
+          toast.error(`入力内容に誤りがあります: ${message}`);
+          break;
         case 500:
           toast.error("サーバーエラーが発生しました");
           break;
+        case 503:
+          toast.error("サービスが一時的に利用できません");
+          break;
         default:
-          toast.error("エラーが発生しました");
+          toast.error(`エラーが発生しました: ${message}`);
       }
     } else if (error.request) {
-      toast.error("サーバーに接続できません");
+      toast.error(
+        "サーバーに接続できません。ネットワーク接続を確認してください。"
+      );
     } else {
-      toast.error("予期しないエラーが発生しました");
+      toast.error(`予期しないエラーが発生しました: ${error.message}`);
     }
     return Promise.reject(error);
   }
@@ -201,11 +221,15 @@ apiClient.interceptors.response.use(
 // src/api/equipmentApi.ts から抜粋
 import { apiClient } from "./client";
 
+// 備品情報を取得する関数
 export const fetchEquipment = async (): Promise<Equipment[]> => {
-  // 設定済みのapiClientを使用
-  const { data } = await apiClient.get<Equipment[]>("/equipments");
-  // 実行時に zod を使って正しいデータ構造かを検証する
-  return EquipmentsSchema.parse(data);
+  const { data } = await apiClient.get("/equipments");
+  // 実行時バリデーション - APIレスポンスが期待する型と一致するか検証
+  try {
+    return EquipmentsSchema.parse(data);
+  } catch (error) {
+    return handleValidationError(error);
+  }
 };
 
 // src/hooks/useEquipment.ts から抜粋
@@ -289,15 +313,26 @@ export const useRefetchEquipments = () => {
 #### zod によるレスポンスのバリデーション
 
 ```typescript
-// src/api/equipment.ts から抜粋
+// src/api/equipmentApi.ts から抜粋
 export const EquipmentSchema = z.object({
   id: z.string(),
-  name: z.string(),
-  category: z.string(),
-  status: z.enum(["使用中", "貸出中", "利用可能", "廃棄"]),
-  quantity: z.number(),
-  storageLocation: z.string(),
-  purchaseDate: z.string(),
+  name: z.string().min(1, "備品名は必須です"),
+  category: z.enum([
+    "電子機器",
+    "オフィス家具",
+    "工具・作業用品",
+    "AV機器・周辺機器",
+    "消耗品",
+    "防災・安全用品",
+    "レンタル備品",
+    "社用車関連品"
+  ] as const),
+  status: z.enum(["使用中", "貸出中", "利用可能", "廃棄"] as const),
+  quantity: z.number().min(0, "在庫数は0以上である必要があります"),
+  storageLocation: z.string().min(1, "保管場所は必須です"),
+  purchaseDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "日付はYYYY-MM-DD形式である必要があります"),
   borrower: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -305,19 +340,60 @@ export const EquipmentSchema = z.object({
 });
 
 export const EquipmentsSchema = z.array(EquipmentSchema);
+
+// 作成用のスキーマ（id, createdAt, updatedAtを除外）
+export const CreateEquipmentSchema = EquipmentSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+// 更新用のスキーマ（すべてのフィールドをオプショナルに）
+export const UpdateEquipmentSchema = EquipmentSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+}).partial();
 ```
 
 zod を使用してスキーマを定義し、API レスポンスを検証しています。これにより、実行時にデータ構造の整合性を確認できます。
+また、作成用と更新用の別々のスキーマも定義し、適切なバリデーションを行っています。
 
 #### 型の自動生成と型安全性の確保
 
 ```typescript
-// src/api/equipment.ts から抜粋
+// src/api/equipmentApi.ts から抜粋
 export type Equipment = z.infer<typeof EquipmentSchema>;
 export type Equipments = z.infer<typeof EquipmentsSchema>;
+export type CreateEquipmentInput = z.infer<typeof CreateEquipmentSchema>;
+export type UpdateEquipmentInput = z.infer<typeof UpdateEquipmentSchema>;
+export type EquipmentCategory = Equipment["category"];
+export type EquipmentStatus = Equipment["status"];
 ```
 
 `z.infer`を使用して、zod スキーマから TypeScript の型を自動生成しています。これにより、スキーマと型定義の同期が保たれ、型安全性が向上します。
+
+#### バリデーションエラーハンドリング
+
+```typescript
+// src/api/equipmentApi.ts から抜粋
+export class ValidationError extends Error {
+  constructor(public errors: z.ZodError) {
+    super("Validation failed");
+    this.name = "ValidationError";
+  }
+}
+
+const handleValidationError = (error: unknown): never => {
+  if (error instanceof z.ZodError) {
+    console.error("Validation errors:", error.errors);
+    throw new ValidationError(error);
+  }
+  throw error;
+};
+```
+
+カスタムエラークラスを定義し、zod のバリデーションエラーを適切にハンドリングしています。
 
 ---
 
@@ -331,6 +407,14 @@ export const useEquipments = () => {
   return useQuery({
     queryKey: equipmentKeys.all,
     queryFn: fetchEquipment
+  });
+};
+
+export const useEquipmentById = (id: string) => {
+  return useQuery({
+    queryKey: equipmentKeys.details(id),
+    queryFn: () => fetchEquipmentById(id),
+    enabled: !!id
   });
 };
 ```
@@ -349,6 +433,7 @@ export const useCreateEquipment = () => {
   return useMutation({
     mutationFn: createEquipment,
     onSuccess: () => {
+      // 成功時にキャッシュを無効化して再取得
       queryClient.invalidateQueries({ queryKey: equipmentKeys.all });
     }
   });
@@ -358,8 +443,12 @@ export const useUpdateEquipment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: updateEquipment,
+    mutationFn: (params: {
+      id: string;
+      data: Partial<Omit<Equipment, "id" | "createdAt" | "updatedAt">>;
+    }) => updateEquipment(params.id, params.data),
     onSuccess: (data) => {
+      // 成功時に特定の備品と全体のリストを更新
       queryClient.invalidateQueries({
         queryKey: equipmentKeys.details(data.id)
       });
@@ -374,6 +463,7 @@ export const useDeleteEquipment = () => {
   return useMutation({
     mutationFn: deleteEquipment,
     onSuccess: (_, variables) => {
+      // 成功時にキャッシュから削除した備品を除去
       queryClient.removeQueries({ queryKey: equipmentKeys.details(variables) });
       queryClient.invalidateQueries({ queryKey: equipmentKeys.all });
     }
@@ -389,39 +479,45 @@ React Query の`useMutation`フックを使用して、データの作成、更�
 
 ### 3-5. Task 1-5. エラーハンドリングと UI 状態管理
 
-#### トーストによるエラー通知の実装
+#### 統合されたエラーハンドリング
+
+エラーハンドリングは axios インターセプターで統一的に処理され、react-hot-toast ライブラリを使用して通知を表示しています：
 
 ```typescript
-// src/api/equipment.ts から抜粋
-export const fetchEquipment = async (): Promise<Equipment[]> => {
-  try {
-    // ...
-  } catch (error) {
-    toast.error("備品データの取得に失敗しました");
-    throw new Error("Failed to fetch equipment data");
+// src/api/client.ts のレスポンスインターセプターから抜粋
+(error: AxiosError<ApiErrorResponse>) => {
+  if (error.response) {
+    const status = error.response.status;
+    const errorData = error.response.data;
+    const message =
+      errorData?.message || errorData?.error || "エラーが発生しました";
+
+    switch (status) {
+      case 400:
+        toast.error(`無効なリクエストです: ${message}`);
+        break;
+      case 422:
+        toast.error(`入力内容に誤りがあります: ${message}`);
+        break;
+      // その他のステータスコード処理...
+    }
   }
+  return Promise.reject(error);
 };
 ```
 
-各 API 関数では、try-catch 構文を使用してエラーをキャッチし、react-hot-toast ライブラリを使用してユーザーフレンドリーな通知を表示しています。これにより、ユーザーはエラーをすぐに認識できます。
-
 #### ローディング、エラー、成功状態の UI 制御
 
+React Query が提供する状態フラグを使用して、データの状態に応じた UI の表示を制御しています：
+
 ```tsx
-// src/pages/EquipmentList.tsx から抜粋
+// コンポーネントでの使用例
 const EquipmentList = () => {
   const { data, isLoading, isError, error, isSuccess, refetch } =
     useEquipments();
 
-  // 初回データ読み込み成功時にトースト通知を表示
-  useEffect(() => {
-    if (isSuccess && data.length > 0) {
-      toast.success("備品データを読み込みました");
-    }
-  }, [isSuccess, data]);
-
   if (isLoading) {
-    return <LoadingState />;
+    return <LoadingSpinner />;
   }
 
   if (isError) {
