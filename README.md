@@ -551,16 +551,17 @@ React Query が提供する`isLoading`、`isError`、`isSuccess`などの状態�
 #### useForm フックによるフォーム状態管理
 
 ```typescript
-// src/components/EquipmentForm.tsx から抜粋
+// src/components/equipment/EquipmentForm.tsx から抜粋
 const {
   register,
   handleSubmit,
   reset,
   formState: { errors }
 } = useForm<EquipmentFormData>({
-  resolver: zodResolver(equipmentFormSchema),
-  mode: "onBlur",
+  resolver: zodResolver(equipmentFormSchema), // Zodスキーマをバリデーション用に接続
+  mode: "onBlur", // フォーカスを失った時にバリデーション
   defaultValues: {
+    category: "AV機器・周辺機器",
     status: "利用可能",
     quantity: 1,
     purchaseDate: new Date().toISOString().split("T")[0]
@@ -581,23 +582,24 @@ const {
 #### フォームの送信処理
 
 ```typescript
-// src/components/EquipmentForm.tsx から抜粋
+// src/components/equipment/EquipmentForm.tsx から抜粋
 const onSubmit = (data: EquipmentFormData) => {
   mutate(data, {
     onSuccess: () => {
-      reset(); // フォームをリセット
+      reset();
+      navigate("/");
     }
   });
 };
 
 return (
-  <form onSubmit={handleSubmit(onSubmit)} className="...">
+  <form onSubmit={handleSubmit(onSubmit)} className="p-6">
     {/* フォーム要素 */}
   </form>
 );
 ```
 
-`handleSubmit` 関数を使用して、フォームの送信処理を実装しています。この関数はバリデーションが成功した場合にのみ `onSubmit` コールバックを実行します。
+`handleSubmit` 関数を使用して、フォームの送信処理を実装しています。この関数はバリデーションが成功した場合にのみ `onSubmit` コールバックを実行し、成功時にはフォームをリセットしてホームページに遷移します。
 
 ---
 
@@ -606,38 +608,51 @@ return (
 #### バリデーションスキーマの定義
 
 ```typescript
-// src/components/EquipmentForm.tsx から抜粋
+// src/components/equipment/EquipmentForm.tsx から抜粋
 const equipmentFormSchema = z.object({
-  name: z.string().min(1, "備品名は必須です"),
-  category: z.string().min(1, "カテゴリは必須です"),
-  status: z.enum(["使用中", "貸出中", "利用可能", "廃棄"], {
+  name: z.string().min(1, { message: "備品名は必須です" }),
+  category: z.enum(
+    [
+      "電子機器",
+      "オフィス家具",
+      "工具・作業用品",
+      "AV機器・周辺機器",
+      "消耗品",
+      "防災・安全用品",
+      "レンタル備品",
+      "社用車関連品"
+    ] as const,
+    {
+      errorMap: () => ({ message: "有効なカテゴリを選択してください" })
+    }
+  ),
+  status: z.enum(["使用中", "貸出中", "利用可能", "廃棄"] as const, {
     errorMap: () => ({ message: "有効なステータスを選択してください" })
   }),
-  quantity: z
-    .number({ invalid_type_error: "数値を入力してください" })
-    .min(1, "最低1つ以上必要です"),
-  storageLocation: z.string().min(1, "保管場所は必須です"),
-  purchaseDate: z.string().min(1, "購入日は必須です"),
+  quantity: z.number().min(1, { message: "最低1つ以上必要です" }),
+  storageLocation: z.string().min(1, { message: "保管場所は必須です" }),
+  purchaseDate: z.string().min(1, { message: "購入日は必須です" }),
   borrower: z.string().optional(),
   notes: z.string().optional()
 });
 
+// フォームのデータ型定義（Zodスキーマから型を生成）
 type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
 ```
 
-`zod`を使用して、フォーム入力値のバリデーションスキーマを定義しています。各フィールドには適切な制約と、エラーメッセージが設定されています。
+`zod`を使用して、フォーム入力値のバリデーションスキーマを定義しています。各フィールドには適切な制約と、日本語のエラーメッセージが設定されています。enum フィールドには `errorMap` を使用してカスタムエラーメッセージを提供しています。
 
 #### zodResolver によるバリデーションの統合
 
 ```typescript
-// src/components/EquipmentForm.tsx から抜粋
+// src/components/equipment/EquipmentForm.tsx から抜粋
 import { zodResolver } from "@hookform/resolvers/zod";
 
 const {
   register
   // ...
 } = useForm<EquipmentFormData>({
-  resolver: zodResolver(equipmentFormSchema)
+  resolver: zodResolver(equipmentFormSchema) // Zodスキーマをバリデーション用に接続
   // ...
 });
 ```
@@ -651,29 +666,34 @@ const {
 #### フィールドごとのエラーメッセージ表示
 
 ```tsx
-// src/components/EquipmentForm.tsx から抜粋
+// src/components/equipment/EquipmentForm.tsx から抜粋
 <div className="space-y-1">
-  <label htmlFor="name" className="...">
+  <label htmlFor="name" className="block text-base font-medium text-gray-700">
     備品名<span className="ml-1 text-red-500">*</span>
   </label>
   <input
     id="name"
     type="text"
+    placeholder="例: MacBookノートパソコン"
     {...register("name")}
     aria-invalid={errors.name ? "true" : "false"}
-    className={`... ${
-      errors.name ? "border-red-300 focus:border-red-500" : "..."
+    className={`block my-2 p-2 h-10 w-full rounded-md shadow-sm
+    focus:ring focus:ring-gray-200 focus:ring-opacity-50
+    transition duration-200 ${
+      errors.name
+        ? "border-red-300 focus:border-red-500"
+        : "border-gray-300 focus:border-gray-500"
     }`}
   />
   {errors.name && (
-    <p className="text-sm text-red-600 flex items-center" id="name-error">
+    <p className="text-base text-red-600 flex items-center" id="name-error">
       {errors.name.message}
     </p>
   )}
 </div>
 ```
 
-各フォームフィールドでは、`errors` オブジェクトを確認し、エラーがある場合にのみエラーメッセージを表示しています。アクセシビリティのために `aria-invalid` 属性も設定しています。
+各フォームフィールドでは、`errors` オブジェクトを確認し、エラーがある場合にのみエラーメッセージを表示しています。エラー状態に応じて入力フィールドの border 色を変更し、アクセシビリティのために `aria-invalid` 属性も設定しています。
 
 ---
 
@@ -682,12 +702,13 @@ const {
 #### デフォルト値の設定
 
 ```typescript
-// src/components/EquipmentForm.tsx から抜粋
+// src/components/equipment/EquipmentForm.tsx から抜粋
 const {
   // ...
 } = useForm<EquipmentFormData>({
   // ...
   defaultValues: {
+    category: "AV機器・周辺機器",
     status: "利用可能",
     quantity: 1,
     purchaseDate: new Date().toISOString().split("T")[0]
@@ -700,11 +721,19 @@ const {
 #### フォームのリセット機能
 
 ```tsx
-// src/components/EquipmentForm.tsx から抜粋
-<button type="button" onClick={() => reset()} className="...">
-  <svg>...</svg>
+// src/components/equipment/EquipmentForm.tsx から抜粋
+{
+  /* クリアボタン */
+}
+<button
+  type="button"
+  onClick={() => reset()}
+  className="flex items-center px-4 py-2 border border-gray-300 shadow-sm text-base font-medium rounded-md
+  text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400
+  transition duration-200"
+>
   クリア
-</button>
+</button>;
 ```
 
 `reset` 関数を使用して、クリアボタンを実装しています。この関数を呼び出すことで、フォームの入力値を初期値にリセットできます。
