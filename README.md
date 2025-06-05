@@ -1081,10 +1081,17 @@ type FilterState = {
   // State
   categoryFilter: EquipmentCategory | "";
   statusFilter: EquipmentStatus | "";
+  searchQuery: string; // 検索クエリ状態
 
   // Actions
   setCategoryFilter: (category: EquipmentCategory | "") => void;
   setStatusFilter: (status: EquipmentStatus | "") => void;
+  setSearchQuery: (query: string) => void; // 検索クエリ更新アクション
+  setFiltersFromUrl: (
+    category: EquipmentCategory | "",
+    status: EquipmentStatus | "",
+    search?: string // URL検索パラメータ同期用
+  ) => void;
   clearFilters: () => void;
 };
 
@@ -1095,6 +1102,7 @@ const useFilterStore = create<FilterState>()(
       // Initial State
       categoryFilter: "",
       statusFilter: "",
+      searchQuery: "", // 検索クエリの初期値
 
       // Actions
       setCategoryFilter: (category) =>
@@ -1108,34 +1116,70 @@ const useFilterStore = create<FilterState>()(
 export default useFilterStore;
 ```
 
-`create` 関数を使用して、グローバルステートのストアを作成しています。ストアの定義には、初期状態（state）とその状態を更新するためのアクション（actions）を含めています。
+`create` 関数を使用して、グローバルステートのストアを作成しています。ストアの定義には、初期状態（state）とその状態を更新するためのアクション（actions）を含めています。上記では、フィルター機能用に `categoryFilter` と `statusFilter` に加えて、`searchQuery` を実装し、フィルタ状態の管理を完結にしています。第三引数にアクション名を指定することでデバッグをしやすくしています。
 
 #### コンポーネントでのストア利用
 
 ```tsx
 // src/pages/Homepage.tsx から抜粋
+import { useNavigate, useSearchParams } from "react-router-dom";
 import useFilterStore from "../stores/filterStore";
 
 const HomePage = () => {
+  // React Router によるURLパラメータ管理
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [localSearchQuery, setLocalSearchQuery] = useState("");
+
+  // グローバルステートからフィルター状態を取得
   const {
     categoryFilter,
     statusFilter,
+    searchQuery,
     setCategoryFilter,
     setStatusFilter,
-    clearFilters
+    setSearchQuery,
+    clearFilters,
+    setFiltersFromUrl
   } = useFilterStore();
 
-  // フィルタリング機能
-  const handleCategoryChange = (category: EquipmentCategory | "") => {
-    setCategoryFilter(category);
-    updateUrl();
-  };
+  // URLクエリパラメータの解析をメモ化
+  const urlParams = useMemo(() => {
+    const categoryFromUrl = searchParams.get("category");
+    const statusFromUrl = searchParams.get("status");
+    const searchFromUrl = searchParams.get("search") || "";
 
-  // ...ホームページのレンダリングロジック
+    return {
+      category: (categoryFromUrl || "") as EquipmentCategory | "",
+      status: (statusFromUrl || "") as EquipmentStatus | "",
+      search: searchFromUrl
+    };
+  }, [searchParams]);
+
+  // URL同期エフェクト - URLとグローバルステートを同期
+  useEffect(() => {
+    if (
+      urlParams.category !== categoryFilter ||
+      urlParams.status !== statusFilter ||
+      urlParams.search !== searchQuery
+    ) {
+      setFiltersFromUrl(urlParams.category, urlParams.status);
+      if (urlParams.search !== searchQuery) {
+        setSearchQuery(urlParams.search);
+        setLocalSearchQuery(urlParams.search);
+      }
+    }
+  }, [
+    urlParams,
+    categoryFilter,
+    statusFilter,
+    searchQuery,
+    setFiltersFromUrl,
+    setSearchQuery
+  ]);
 };
 ```
 
-コンポーネント内で `useFilterStore` フックを使用して、グローバルステートとその更新関数にアクセスしています。これにより、プロップドリリング（props の深い階層への受け渡し）を避けながら、複数のコンポーネント間でステートを共有できます。
+コンポーネント内で `useFilterStore` フックを使用して、グローバルステートとその更新関数にアクセスしています。これにより、プロップドリリング（props の深い階層への受け渡し）を避けながら、複数のコンポーネント間でステートを共有できます。さらに、URL パラメータとグローバルステートを同期させることで、ページが更新されても状態が保持されるようになっています。
 
 ---
 
@@ -1147,13 +1191,37 @@ const HomePage = () => {
 // src/stores/filterStore.ts から抜粋
 setCategoryFilter: (category) =>
   set({ categoryFilter: category }, false, "setCategoryFilter"),
+
 setStatusFilter: (status) =>
   set({ statusFilter: status }, false, "setStatusFilter"),
+
+setSearchQuery: (query) =>
+  set({ searchQuery: query }, false, "setSearchQuery"),
+
+setFiltersFromUrl: (category, status, search = "") =>
+  set(
+    {
+      categoryFilter: category,
+      statusFilter: status,
+      searchQuery: search
+    },
+    false,
+    "setFiltersFromUrl"
+  ),
+
 clearFilters: () =>
-  set({ categoryFilter: "", statusFilter: "" }, false, "clearFilters")
+  set(
+    {
+      categoryFilter: "",
+      statusFilter: "",
+      searchQuery: "" // 検索クエリもクリア
+    },
+    false,
+    "clearFilters"
+  )
 ```
 
-`set` 関数を使用して、ストアの状態を更新しています。引数として新しい状態のオブジェクトを渡すことで、既存の状態と自動的にマージされます。
+`set` 関数を使用して、ストアの状態を更新しています。引数として新しい状態のオブジェクトを渡すことで、既存の状態と自動的にマージされます。第三引数にアクション名を指定することで、Redux DevTools での識別が容易になります。`setFiltersFromUrl` アクションは URL からの複数のパラメータを一度に同期するために使用されています。
 
 #### コンポーネントでのステート読み取り
 
@@ -1162,21 +1230,46 @@ clearFilters: () =>
 import useFilterStore from "../../stores/filterStore";
 
 const EquipmentList = () => {
-  // Get filters from global store
-  const { categoryFilter, statusFilter } = useFilterStore();
+  // グローバルストアからフィルターを取得（検索クエリも含む）
+  const { categoryFilter, statusFilter, searchQuery } = useFilterStore();
 
-  // ステートを使ったフィルタリング
-  const filteredData = data?.filter((item) => {
-    const matchesCategory = !categoryFilter || item.category === categoryFilter;
-    const matchesStatus = !statusFilter || item.status === statusFilter;
-    return matchesCategory && matchesStatus;
-  });
+  // フィルタリングと検索されたデータをメモ化
+  const filteredAndSearchedData = useMemo(() => {
+    if (!data) return [];
+
+    let result = data;
+
+    // カテゴリとステータスフィルター
+    result = result.filter((item) => {
+      const matchesCategory =
+        !categoryFilter || item.category === categoryFilter;
+      const matchesStatus = !statusFilter || item.status === statusFilter;
+      return matchesCategory && matchesStatus;
+    });
+
+    // 検索クエリフィルター
+    if (searchQuery && searchQuery.trim() !== "") {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter((item) => {
+        return (
+          item.name.toLowerCase().includes(query) ||
+          item.category.toLowerCase().includes(query) ||
+          item.status.toLowerCase().includes(query) ||
+          item.storageLocation.toLowerCase().includes(query) ||
+          (item.borrower && item.borrower.toLowerCase().includes(query)) ||
+          (item.notes && item.notes.toLowerCase().includes(query))
+        );
+      });
+    }
+
+    return result;
+  }, [data, categoryFilter, statusFilter, searchQuery]);
 
   // ...リストのレンダリングロジック
 };
 ```
 
-コンポーネント内で、ストアから取得したステートを使って、表示データのフィルタリングを行っています。ステートが更新されると、自動的にコンポーネントが再レンダリングされます。
+コンポーネント内で、ストアから取得したステート（カテゴリ、ステータスフィルター、検索クエリ）を使って、表示データのフィルタリングを行っています。また、パフォーマンス最適化のために `useMemo` フックを使用して、依存値（フィルターや検索クエリ）が変更された場合のみ再計算を行っています。ステートが更新されると、自動的にコンポーネントが再レンダリングされ、フィルタリングされた結果が表示されます。
 
 #### 前の状態を参照する複雑な更新
 
@@ -1185,7 +1278,6 @@ const EquipmentList = () => {
 addToRecentlyViewed: (equipmentId) =>
   set(
     (state) => {
-      // Remove duplicates and add to beginning
       const newRecentlyViewed = [
         equipmentId,
         ...state.recentlyViewed.filter((id) => id !== equipmentId)
@@ -1198,13 +1290,15 @@ addToRecentlyViewed: (equipmentId) =>
   ),
 ```
 
-前の状態に基づいて更新を行うために、`set` 関数にコールバック関数を渡しています。この例では、最近表示した備品の ID リストを管理し、新しい ID を追加する際に、重複を除去して最大 5 つまでに制限しています。
+前の状態に基づいて更新を行うために、`set` 関数にコールバック関数を渡しています。この例では、最近表示した備品の ID リストを管理し、新しい ID を追加する際に、重複を除去して最大 5 つまでに制限しています。このパターンは、現在の状態に基づいて計算が必要な場合に特に有用です。
+
+`DetailPage`コンポーネント内では、ページが読み込まれるたびに`addToRecentlyViewed`アクションが呼び出され、閲覧履歴が更新されます。
 
 ---
 
 ### 6-5. Task 4-3. ストアの分割とモジュール化
 
-本プロジェクトでは、機能ごとに複数のストアを作成し、責任を分離しています。
+本プロジェクトでは、機能ごとに複数のストアを作成し、責任を分離しています。この方法により、各ストアは特定の機能領域に集中でき、コードの可読性と保守性が向上します。
 
 #### 機能ごとのストア分割
 
@@ -1212,14 +1306,57 @@ addToRecentlyViewed: (equipmentId) =>
 
 ```typescript
 // src/stores/filterStore.ts
-const useFilterStore = create<FilterState>()(/* ... */);
+type FilterState = {
+  // State
+  categoryFilter: EquipmentCategory | "";
+  statusFilter: EquipmentStatus | "";
+  searchQuery: string;
+
+  // Actions
+  setCategoryFilter: (category: EquipmentCategory | "") => void;
+  setStatusFilter: (status: EquipmentStatus | "") => void;
+  setSearchQuery: (query: string) => void;
+  setFiltersFromUrl: (
+    category: EquipmentCategory | "",
+    status: EquipmentStatus | "",
+    search?: string
+  ) => void;
+  clearFilters: () => void;
+};
+
+const useFilterStore = create<FilterState>()(
+  devtools(
+    (set) => ({
+      // Initial State & Actions...
+    }),
+    { name: "Filter Store" }
+  )
+);
 ```
 
 2. **`equipmentStore.ts`** - 選択された備品と閲覧履歴の管理を担当
 
 ```typescript
 // src/stores/equipmentStore.ts
-const useEquipmentStore = create<EquipmentState>()(/* ... */);
+type EquipmentState = {
+  // State
+  selectedEquipment: Equipment | null;
+  recentlyViewed: string[];
+
+  // Actions
+  selectEquipment: (equipment: Equipment | null) => void;
+  addToRecentlyViewed: (equipmentId: string) => void;
+  clearRecentlyViewed: () => void;
+};
+
+const useEquipmentStore = create<EquipmentState>()(
+  devtools(
+    (set) => ({
+      // Initial State & Actions...
+    }),
+    { name: "Equipment Store" }
+  )
+);
 ```
 
 ---
@@ -1242,14 +1379,36 @@ const useFilterStore = create<FilterState>()(
 );
 ```
 
-`devtools` ミドルウェアを使用して、Redux DevTools エクステンションとの統合を実装しています。これにより、ブラウザの開発者ツールでステート変更の履歴を追跡し、デバッグできます。
+`devtools` ミドルウェアを使用して、Redux DevTools エクステンションとの統合を実装しています。これにより、ブラウザの開発者ツールでステート変更の履歴を追跡し、デバッグできます。ミドルウェアに `name` オプションを渡すことで、Redux DevTools で識別しやすくなります。
 
 #### アクション名のラベル付け
 
 ```typescript
 // src/stores/equipmentStore.ts から抜粋
-selectEquipment: (equipment) =>
-  set({ selectedEquipment: equipment }, false, "selectEquipment"),
+setSearchQuery: (query) =>
+  set({ searchQuery: query }, false, "setSearchQuery"),
+
+// 複合アクション
+setFiltersFromUrl: (category, status, search = "") =>
+  set(
+    {
+      categoryFilter: category,
+      statusFilter: status,
+      searchQuery: search
+    },
+    false,
+    "setFiltersFromUrl"
+  ),
+
+// 前の状態を参照する複雑なアクション
+addToRecentlyViewed: (equipmentId) =>
+  set(
+    (state) => ({
+      // 状態計算ロジック
+    }),
+    false,
+    "addToRecentlyViewed"
+  ),
 ```
 
 `set` 関数の第三引数にアクション名を指定することで、DevTools でのアクションの追跡が容易になります。
@@ -1259,9 +1418,13 @@ selectEquipment: (equipment) =>
 1. ブラウザに [Redux DevTools 拡張機能](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd) をインストールします
 2. アプリケーションを開発モードで実行します
 3. ブラウザの開発者ツールで Redux タブを開きます
-4. ドロップダウンメニューから目的のストアを選択します
+4. ドロップダウンメニューから目的のストア（"Filter Store" または "Equipment Store"）を選択します
 5. アプリケーションの操作時に発生するステート変更を監視できます
+   - フィルターの変更
+   - 検索クエリの入力
+   - 備品詳細ページの閲覧（最近閲覧リストの更新）
 6. タイムトラベル機能を使用して、過去の状態に戻ることもできます
+7. アクションを選択して「Action」と「State」タブで詳細を確認できます
 
 ---
 
