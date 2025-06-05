@@ -775,21 +775,22 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          {/* インデックスルート - ホームにリダイレクト */}
+          {/* Index route - redirects to home */}
           <Route index element={<Navigate to="/home" replace />} />
 
-          {/* メインルート */}
+          {/* Main routes */}
           <Route path="home" element={<HomePage />} />
           <Route path="register" element={<RegisterPage />} />
 
-          {/* 動的ルート */}
+          {/* Dynamic routes*/}
           <Route path="detail/:id" element={<DetailPage />} />
           <Route path="edit/:id" element={<EditPage />} />
 
-          {/* 404ルート */}
+          {/* 404 route */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
+      <Toaster position="top-center" />
     </BrowserRouter>
   );
 }
@@ -805,47 +806,121 @@ function App() {
 
 ```tsx
 // src/pages/DetailPage.tsx から抜粋
-import { useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect } from "react";
+
 import { useEquipmentById } from "../hooks/useEquipment";
+import useEquipmentStore from "../stores/equipmentStore";
 
 const DetailPage = () => {
   // URL から id パラメータを取得
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  // グローバル状態へのアクセス
+  const { selectEquipment, addToRecentlyViewed } = useEquipmentStore();
 
   // id を使って特定の備品データを取得
-  const { data: equipment, isLoading, isError } = useEquipmentById(id || "");
+  const { data, isLoading, isError, error } = useEquipmentById(id || "");
 
-  // ...詳細ページのレンダリングロジック
+  // データがロードされたら、グローバルステートを更新
+  useEffect(() => {
+    if (data) {
+      selectEquipment(data);
+      addToRecentlyViewed(data.id);
+    }
+
+    // アンマウント時に選択された備品をクリア
+    return () => {
+      selectEquipment(null);
+    };
+  }, [data, selectEquipment, addToRecentlyViewed]);
+
+  // ローディング、エラー、データ表示処理...
 };
 ```
 
-`useParams` フックを使用して、URL から動的パラメータ（`:id`）を取得しています。この例では、備品の詳細ページで特定の備品 ID を URL から取得し、その ID を使ってデータを取得しています。
+`useParams` フックを使用して、URL から動的パラメータ（`:id`）を取得しています。この例では、備品の詳細ページで特定の備品 ID を URL から取得し、その ID を使ってデータを取得しています。さらに、取得したデータをグローバルステート（Zustand）に保存し、最近閲覧した備品リストにも追加しています。
 
 #### クエリパラメータの取得
 
 ```tsx
-// src/pages/HomePage.tsx から抜粋
-import { useSearchParams } from "react-router-dom";
+// src/pages/Homepage.tsx から抜粋
+import { useNavigate, useSearchParams } from "react-router-dom";
+import useFilterStore from "../stores/filterStore";
 
 const HomePage = () => {
-  // URL クエリパラメータの取得と設定
+  // ナビゲーションとURLクエリパラメータ管理のためのReact Routerフック
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const category = searchParams.get("category") || "";
-  const status = searchParams.get("status") || "";
+  const [localSearchQuery, setLocalSearchQuery] = useState("");
 
-  // フィルタリングの適用
-  const handleFilter = (newCategory: string, newStatus: string) => {
-    const params = new URLSearchParams();
-    if (newCategory) params.set("category", newCategory);
-    if (newStatus) params.set("status", newStatus);
-    setSearchParams(params);
-  };
+  // グローバルステートからフィルター状態を取得
+  const {
+    categoryFilter,
+    statusFilter,
+    searchQuery,
+    setCategoryFilter,
+    setStatusFilter,
+    setSearchQuery,
+    clearFilters,
+    setFiltersFromUrl
+  } = useFilterStore();
+
+  // URLクエリパラメータの解析をメモ化
+  const urlParams = useMemo(() => {
+    const categoryFromUrl = searchParams.get("category");
+    const statusFromUrl = searchParams.get("status");
+    const searchFromUrl = searchParams.get("search") || "";
+
+    return {
+      category: (categoryFromUrl || "") as EquipmentCategory | "",
+      status: (statusFromUrl || "") as EquipmentStatus | "",
+      search: searchFromUrl
+    };
+  }, [searchParams]);
+
+  // URLパラメータ更新関数
+  const updateSearchParams = useCallback(
+    (key: string, value: string) => {
+      const newSearchParams = new URLSearchParams(searchParams);
+      if (value) {
+        newSearchParams.set(key, value);
+      } else {
+        newSearchParams.delete(key);
+      }
+      setSearchParams(newSearchParams);
+    },
+    [searchParams, setSearchParams]
+  );
+
+  // URL同期エフェクト
+  useEffect(() => {
+    if (
+      urlParams.category !== categoryFilter ||
+      urlParams.status !== statusFilter ||
+      urlParams.search !== searchQuery
+    ) {
+      setFiltersFromUrl(urlParams.category, urlParams.status);
+      if (urlParams.search !== searchQuery) {
+        setSearchQuery(urlParams.search);
+        setLocalSearchQuery(urlParams.search);
+      }
+    }
+  }, [
+    urlParams,
+    categoryFilter,
+    statusFilter,
+    searchQuery,
+    setFiltersFromUrl,
+    setSearchQuery
+  ]);
 
   // ...ホームページのレンダリングロジック
 };
 ```
 
-`useSearchParams` フックを使用して、URL からクエリパラメータを取得・設定しています。この例では、備品リストをカテゴリやステータスでフィルタリングするために、クエリパラメータを活用しています。
+`useSearchParams` フックを使用して、URL からクエリパラメータを取得・設定しています。この例では、備品リストをカテゴリ、ステータス、検索キーワードでフィルタリングするために、クエリパラメータを活用しています。また、URL パラメータとグローバルステート（Zustand）を同期させ、画面遷移や更新後もフィルタ状態が保持されるようになっています。さらにキーワード検索にはデバウンス処理が実装されています。
 
 ---
 
