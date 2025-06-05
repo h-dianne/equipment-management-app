@@ -26,4 +26,7 @@ coverage
 
 # Github directories
 .github
-docs
+
+# MD files
+docs/react-icons-usage.md
+docs/validation-error-hook-usage.md
