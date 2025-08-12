@@ -9,7 +9,7 @@ const Layout = () => {
         <Outlet />
       </main>
       <footer className="bg-gray-800 text-white p-4 text-right">
-        &copy; {new Date().getFullYear()} 備品管理システム
+        &copy; {new Date().getFullYear()} Equipment Management
       </footer>
     </div>
   );
